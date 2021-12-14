@@ -1,16 +1,23 @@
 package net.trexis.experts.payments.mapper;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
-import net.trexis.experts.payments.configuration.FiniteTransferFrequency;
+import net.trexis.experts.payments.models.FiniteTransferFrequency;
 import lombok.extern.slf4j.Slf4j;
+import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.apache.commons.lang3.StringUtils;
 import com.finite.api.model.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Slf4j
+@Component
 public class PaymentOrdersMapper {
+    @Value("${payment.schedule.defaultEndDate}")
+    private static String defaultEndDate;
+
     private PaymentOrdersMapper() { }
     public static final String CACHE_EXTERNAL_ID = "id";
 
@@ -53,7 +60,7 @@ public class PaymentOrdersMapper {
             else if(paymentOrdersPostRequestBody.getSchedule().getEndDate() != null) {
                 schedule.setEndDateTime(paymentOrdersPostRequestBody.getSchedule().getEndDate().toString());
             } else {
-                schedule.setEndDateTime("2078-12-21");
+                schedule.setEndDateTime(defaultEndDate);
             }
             exchangeTransaction.setRecurringSchedule(schedule);
         } else if(!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now())){
@@ -81,21 +88,21 @@ public class PaymentOrdersMapper {
             case YEARLY:
                 return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusYears(paymentOrdersPostRequestBody.getSchedule().getRepeat());
             default:
-                throw new IllegalStateException("Unexpected value: " + paymentOrdersPostRequestBody.getSchedule().getTransferFrequency());
+                throw new IllegalStateException("Unexpected value for transfer frequency: " + paymentOrdersPostRequestBody.getSchedule().getTransferFrequency());
         }
     }
 
-    public static String createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+    public static PaymentOrderStatus createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         //Return processed if requested date is the same as today and payment type is single as core is handling this immediately
         if(paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
             if(paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now())) {
                 log.debug("Execution Date is immediate, saving payment order as PROCESSED");
-                return "PROCESSED";
+                return PaymentOrderStatus.PROCESSED;
             }
         }
 
         log.debug("Execution Date is not immediate, saving payment order as ACCEPTED");
-        return "ACCEPTED";
+        return PaymentOrderStatus.ACCEPTED;
     }
 
     public static CacheReference toFiniteRefreshCacheReference(String attributeValue) {

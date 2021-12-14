@@ -2,6 +2,7 @@ package net.trexis.experts.payments.mapper;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.Schedule;
+import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,5 +46,36 @@ public class PaymentOrdersMapperTest {
         paymentOrdersPostRequestBody.setSchedule(schedule);
         LocalDate yearlyLocalDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody);
         Assert.assertEquals("2024-04-01", yearlyLocalDate.toString());
+    }
+
+    @Test
+    public void singlePaymentOrderForTodayShouldGetStatusProcessed() {
+        var paymentOrdersPostRequestBody = new PaymentOrdersPostRequestBody();
+
+        paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
+        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now());
+
+        Assert.assertEquals(PaymentOrderStatus.PROCESSED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
+    }
+
+    @Test
+    public void singlePaymentOrderForNextWeekShouldGetStatusAccepted() {
+        var paymentOrdersPostRequestBody = new PaymentOrdersPostRequestBody();
+
+        paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
+        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now().plusWeeks(1));
+
+        Assert.assertEquals(PaymentOrderStatus.ACCEPTED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
+    }
+
+    @Test
+    public void paymentOrderStatusEnumShouldCreateEnumFromString() {
+        var status = PaymentOrderStatus.fromValue("PROCESSED");
+        Assert.assertEquals(PaymentOrderStatus.PROCESSED, status);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void paymentOrderStatusEnumShouldThrowOnInvalidFromValue() {
+        var badEnum = PaymentOrderStatus.fromValue("FAKE");
     }
 }

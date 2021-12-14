@@ -27,11 +27,14 @@ management:
      enabled: false
 
 finite:
-  api:
-    symexchange:
-      cloudApiKey: demo-api-key-do-not-use-in-production
-      baseUrl: http://localhost:9090
+  hosturl: http://localhost:9090
+  apikey: demo-api-key-do-not-use-in-production
 
 logging:
   level:
-    net.trexis.experts: DEBUG
+    net.trexis.experts: INFO
+    root: INFO
+
+payment:
+  schedule:
+    defaultEndDate: "2078-12-21"

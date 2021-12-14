@@ -1,45 +1,15 @@
-# trexis-backbase-payment-order-integration
+## treXis Backbase Payment Order Integration
+This repository is utilizing Backbase depedencies, which require configuration of your local maven environment to have access to Backbase depedencies.  Consult Backbase Support for your credentials.
 
-_Fill out this file with some information about your Service._
+Perform these commands to build this repository :
+```
+mvn clean install
+```
 
-#Getting Started
-* [Extend and build](https://community.backbase.com/documentation/ServiceSDK/latest/extend_and_build)
+### Versions and Upgrade
+The service is developed using the Backbase Service SDK.  The service contains the dependency to the correct service SDK used to package the service, update the dependency to upgrade this to the SDK matching your deployment.
 
-## Dependencies
+### About treXis Co-Develop
+The treXis co-development program allow treXis customers and partners to clone/fork code repositories from the treXis Bitbucket repository.  A list of all accelerators are published on the https://experts.trexis.net.
 
-Requires a running Eureka registry, by default on port 8080.
-
-## Configuration
-
-Service configuration is under `src/main/resources/application.yml`.
-
-## Running
-
-To run the service in development mode, use:
-- `mvn spring-boot:run`
-
-To run the service from the built binaries, use:
-- `java -jar target/trexis-backbase-payment-order-integration-1.0.0-SNAPSHOT.jar`
-
-## Authorization
-
-Requests to this service are authorized with a Backbase Internal JWT, therefore you must access this service via the 
-Backbase Gateway after authenticating with the authentication service.
-
-For local development, an internal JWT can be created from http://jwt.io, entering `JWTSecretKeyDontUseInProduction!` 
-as the secret in the signature to generate a valid signed JWT.
-
-## Community Documentation
-
-Add links to documentation including setup, config, etc.
-
-## Jira Project
-
-Add link to Jira project.
-
-## Confluence Links
-Links to relevant confluence pages (design etc).
-
-## Support
-
-Add links to a support page.
+The <a href="license.txt">license.txt</a> file describe the developer licence agreement for using this repository.

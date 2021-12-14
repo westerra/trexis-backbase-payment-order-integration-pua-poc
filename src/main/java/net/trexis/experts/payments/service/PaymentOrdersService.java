@@ -3,6 +3,7 @@ package net.trexis.experts.payments.service;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CancelResponse;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostResponseBody;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
+import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +23,7 @@ import com.finite.api.model.FiniteType;
 @RequiredArgsConstructor
 public class PaymentOrdersService {
     public static final String XTRACE = "xtrace";
-    @Qualifier("symexchangeExchangeApi")
     private final ExchangeApi exchangeApi;
-
-    @Qualifier("symexchangeCacheApi")
     private final CacheApi cacheApi;
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
@@ -43,18 +41,18 @@ public class PaymentOrdersService {
             var paymentOrderStatus =
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody);
             //Send refresh request on exchange.
-            if(paymentOrderStatus.equals("PROCESSED")) {
+            if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED.getValue())) {
                 this.renewFiniteAdminCache(exchangeTransaction);
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
-            paymentOrdersPostResponseBody.setBankStatus(paymentOrderStatus);
+            paymentOrdersPostResponseBody.setBankStatus(paymentOrderStatus.getValue());
             return paymentOrdersPostResponseBody;
         } catch (RuntimeException ex) {
             //Mark the payment order as rejected due to submission error to core
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
-            paymentOrdersPostResponseBody.setBankStatus("REJECTED");
+            paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
             return paymentOrdersPostResponseBody;
         }
     }
