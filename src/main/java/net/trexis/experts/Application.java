@@ -8,7 +8,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-@EnableScheduling
 public class Application extends SpringBootServletInitializer {
 
     public static void main(final String[] args) {

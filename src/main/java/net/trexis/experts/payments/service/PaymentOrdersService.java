@@ -76,11 +76,7 @@ public class PaymentOrdersService {
             log.debug("Starting Finite admin Cache Refresh ");
             var accountDebtor = (AccountDebtor)exchangeTransaction.getDebtor();
             var accountCreditor = (AccountCreditor)exchangeTransaction.getCreditor();
-            //TODO: Refactor once batch ingestion is in place
-            this.cacheApi.renewCache(FiniteType.ACCOUNT, PaymentOrdersMapper.toFiniteRefreshCacheReference(accountDebtor.getId()), XTRACE);
-            this.cacheApi.renewCache(FiniteType.TRANSACTION, PaymentOrdersMapper.toFiniteRefreshCacheReference(accountDebtor.getId()), XTRACE);
-            this.cacheApi.renewCache(FiniteType.ACCOUNT, PaymentOrdersMapper.toFiniteRefreshCacheReference(accountCreditor.getId()), XTRACE);
-            this.cacheApi.renewCache(FiniteType.TRANSACTION, PaymentOrdersMapper.toFiniteRefreshCacheReference(accountCreditor.getId()), XTRACE);
+            // TODO: renew cache in a way that works with new ingestion
         }).start();
     }
 }
