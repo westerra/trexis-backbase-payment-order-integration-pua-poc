@@ -24,6 +24,7 @@
 
         <!-- Trexis -->
         <trexis-finite-client.version>1.9.6-SNAPSHOT</trexis-finite-client.version>
+        <finite-utilities.version>1.9.6-SNAPSHOT</finite-utilities.version>
 
         <!-- SPEC -->
         <swagger-annotations.version>1.6.1</swagger-annotations.version>
@@ -92,6 +93,11 @@
             <groupId>net.trexis.experts</groupId>
             <artifactId>finite-client</artifactId>
             <version>${trexis-finite-client.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.finite.api</groupId>
+            <artifactId>utilities</artifactId>
+            <version>${finite-utilities.version}</version>
         </dependency>
 
         <!-- MISC -->
