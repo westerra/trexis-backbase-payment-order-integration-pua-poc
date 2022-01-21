@@ -1,6 +1,7 @@
 package net.trexis.experts.payments.mapper;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
+import com.finite.api.commons.Utilities.DateUtilities;
 import net.trexis.experts.payments.models.FiniteTransferFrequency;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
@@ -26,7 +27,10 @@ public class PaymentOrdersMapper {
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
         exchangeTransaction.setAmount(new BigDecimal(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount()));
-        exchangeTransaction.setExecutionDate(paymentOrdersPostRequestBody.getRequestedExecutionDate().toString());
+
+        String effectiveDate = paymentOrdersPostRequestBody.getRequestedExecutionDate().toString();
+        if(DateUtilities.validateISODateOnly(effectiveDate)) effectiveDate += "T00:00:00";
+        exchangeTransaction.setExecutionDate(effectiveDate);
         if(paymentOrdersPostRequestBody.getTransferTransactionInformation() != null &&
                 paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation() != null &&
                 !StringUtils.isEmpty(paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation().getContent())) {
@@ -52,15 +56,22 @@ public class PaymentOrdersMapper {
             schedule.setFrequency(FiniteTransferFrequency.valueOf(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString()).getFrequency());
             schedule.setIsEveryTime(Boolean.TRUE);
             schedule.setDayOn(paymentOrdersPostRequestBody.getSchedule().getOn().toString());
-            schedule.setStartDateTime(paymentOrdersPostRequestBody.getSchedule().getStartDate().toString());
+            String isoStartDate = paymentOrdersPostRequestBody.getSchedule().getStartDate().toString();
+            if(DateUtilities.validateISODateOnly(isoStartDate)) isoStartDate += "T00:00:00";
+            schedule.setStartDateTime(isoStartDate);
             if(paymentOrdersPostRequestBody.getSchedule().getRepeat() != null) {
-                schedule.setEndDateTime(PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody).toString());
+                String isoEndDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody).toString();
+                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
+                schedule.setEndDateTime(isoEndDate);
                 log.debug("Schedule End Date calculated as Start Date {}: Repeat {}: End Date", schedule.getStartDateTime(), paymentOrdersPostRequestBody.getSchedule().getRepeat(), schedule.getEndDateTime());
-            }
-            else if(paymentOrdersPostRequestBody.getSchedule().getEndDate() != null) {
-                schedule.setEndDateTime(paymentOrdersPostRequestBody.getSchedule().getEndDate().toString());
+            } else if(paymentOrdersPostRequestBody.getSchedule().getEndDate() != null) {
+                String isoEndDate = paymentOrdersPostRequestBody.getSchedule().getEndDate().toString();
+                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
+                schedule.setEndDateTime(isoEndDate);
             } else {
-                schedule.setEndDateTime(defaultEndDate);
+                String isoEndDate = defaultEndDate;
+                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
+                schedule.setEndDateTime(isoEndDate);
             }
             exchangeTransaction.setRecurringSchedule(schedule);
         } else if(!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now())){
@@ -69,7 +80,9 @@ public class PaymentOrdersMapper {
             schedule.setFrequency("ONCE");
             schedule.setStartDateTime(exchangeTransaction.getExecutionDate());
             //Add 1 week as expiration for future transfers.
-            schedule.setEndDateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString());
+            String isoEndDate = paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString();
+            if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
+            schedule.setEndDateTime(isoEndDate);
             exchangeTransaction.setRecurringSchedule(schedule);
         }
         return exchangeTransaction;
