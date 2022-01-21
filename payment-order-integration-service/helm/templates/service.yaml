@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "dbs-payment-order-integration-service.labels" . | nindent 4 }}
+spec:
+  externalTrafficPolicy: Cluster
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "dbs-payment-order-integration-service.selectorLabels" . | nindent 4 }}
+  sessionAffinity: None
