@@ -1,0 +1,8 @@
+apiVersion: v1
+description: A Helm chart for Template repo
+name: dbs-payment-order-integration-service
+version: 1.0.0
+home: https://github.com/westerra/<repo name>
+maintainers:
+- name: Vishnu Nair
+  email: vishnu.nair@trexis.net

@@ -1,0 +1,106 @@
+# Default values for dbs-payment-order-integration-service service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+namespace: $NAMESPACE
+
+image:
+  repository: 181741612687.dkr.ecr.us-east-2.amazonaws.com/dbs-payment-order-integration-service
+  tag: $TAG
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: ecrcred
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: NodePort
+  port: 8080
+
+ingress:
+  enabled: false
+  annotations: {
+      alb.ingress.kubernetes.io/certificate-arn: $SSL_ARN,
+      alb.ingress.kubernetes.io/waf-acl-id: 2a8cxxx-xxxxx,
+      alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-2:1xxxx:regional/webacl/waf/xxxxx,
+      alb.ingress.kubernetes.io/shield-advanced-protection: "true",
+      alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15",
+      alb.ingress.kubernetes.io/healthcheck-path: /actuator/health,
+      alb.ingress.kubernetes.io/healthcheck-port: traffic-port,
+      alb.ingress.kubernetes.io/healthcheck-protocol: HTTP,
+      alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5",
+      alb.ingress.kubernetes.io/healthy-threshold-count: "2",
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}, {"HTTPS": 443}]',
+      alb.ingress.kubernetes.io/scheme: internet-facing,
+      alb.ingress.kubernetes.io/success-codes: "200",
+      alb.ingress.kubernetes.io/unhealthy-threshold-count: "2",      
+      kubernetes.io/ingress.class: alb,
+      app.backbase.com/tier: "dbs",
+      app.kubernetes.io/instance: "westerra-dbs-payment-order-integration-service",
+      app.kubernetes.io/name: "dbs-payment-order-integration-service",
+      app.kubernetes.io/part-of: "westerra",
+      app.kubernetes.io/managed-by: "Helm"
+  }
+  hosts:
+    - host: $INGRESS_HOST
+      paths:
+        - /*
+
+
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+podTemplate:
+  annotations: {
+      app.backbase.com/tier: "dbs",
+      app.kubernetes.io/instance: "westerra-dbs-payment-order-integration-service",
+      app.kubernetes.io/name: "dbs-payment-order-integration-service",
+      app.kubernetes.io/part-of: "westerra",
+      app.kubernetes.io/managed-by: "Helm"
+  }
+
+#extraEnv: [
+#  - JAVA_TOOL_OPTIONS: -Djava.security.egd=file:/dev/./urandom -Dspring.cloud.config.server.git.skipSslValidation=true,
+#  - SPRING_CLOUD_CONFIG_SERVER_GIT_DEFAULT_LABEL: develop
+#]
+
+extraEnvs: []
+
+secrets:
+  AMQU: $AMQU
+  AMQP: $AMQP
+  JAVA_TOOL_OPTIONS: $JAVA_TOOL_OPTIONS
+  SIG_SECRET_KEY: $SIG_SECRET_KEY
+  LOADER_PATH: $LOADER_PATH
+  AWS_REGION: $AWS_DEFAULT_REGION
+  EXTERNAL_SIG_SECRET_KEY: $EXTERNAL_SIG_SECRET_KEY
+  EXTERNAL_ENC_SECRET_KEY: $EXTERNAL_ENC_SECRET_KEY
+  USERCTX_KEY: $USERCTX_KEY
+  RDSURL: $RDSURL
+  DBU: $DBU
+  DBP: $DBP
+  IDENTITY_USERNAME: $IDENTITY_USERNAME
+  IDENTITY_PASSWORD: $IDENTITY_PASSWORD
