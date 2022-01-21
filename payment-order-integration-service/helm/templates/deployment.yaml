@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dbs-payment-order-integration-service.name" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "dbs-payment-order-integration-service.labels" . | nindent 4 }}
+spec:
+  progressDeadlineSeconds: 600
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      {{- include "dbs-payment-order-integration-service.labels" . | nindent 6 }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        timestamp: {{ now | quote }}
+      labels:
+        {{- include "dbs-payment-order-integration-service.labels" . | nindent 8 }}
+        {{- with .Values.podTemplate.annotations }}  
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      securityContext:
+        runAsGroup: 1000
+        runAsUser: 1000
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - java
+          args:
+            - -jar
+            - service.jar
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 15
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 15
+          env:
+          - name: IDENTITY_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "IDENTITY_USERNAME"
+          - name: IDENTITY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "IDENTITY_PASSWORD"            
+          - name: LOADER_PATH
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "LOADER_PATH"
+          - name: AWS_REGION
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "AWS_REGION"
+          - name: AMQU
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "AMQU"
+          - name: AMQP
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "AMQP"
+          - name: JAVA_TOOL_OPTIONS
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "JAVA_TOOL_OPTIONS"
+          - name: SIG_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "SIG_SECRET_KEY"
+          - name: EXTERNAL_SIG_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "EXTERNAL_SIG_SECRET_KEY"
+          - name: EXTERNAL_ENC_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "EXTERNAL_ENC_SECRET_KEY"
+          - name: USERCTX_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "USERCTX_KEY"
+          - name: RDSURL
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "RDSURL"
+          - name: DBU
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "DBU"
+          - name: DBP
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "DBP"
+          {{- if .Values.extraEnv }}
+            {{- toYaml .Values.extraEnv | nindent 10 }}
+          {{- end }}       
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      dnsPolicy: ClusterFirst
+      hostAliases:
+      - hostnames:
+        - dbs-payment-order-integration-service
+        ip: 127.0.0.1
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30

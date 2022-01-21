@@ -1,0 +1,313 @@
+version: 2.1
+
+orbs:
+  aws-eks: circleci/aws-eks@1.1.0
+  kubernetes: circleci/kubernetes@0.12.0
+  aws-cli: circleci/aws-cli@2.0.3
+  gh: circleci/github-cli@1.0
+  maven: circleci/maven@1.1
+  aws-ecr: circleci/aws-ecr@7.0.0
+
+jobs:
+  create-pr-from-develop-to-main:
+    docker:
+      - image: 'cimg/base:stable'
+    parameters:
+      token:
+        description: |
+          Pass Github token
+        type: env_var_name
+    steps:
+      - gh/setup
+      - gh/clone
+      - run:
+          command: |
+            PR_STATUS=$(gh pr view --json state | jq -r .state)
+            if [[ "$PR_STATUS" = "OPEN" ]]; then echo "PR already open" ; else gh pr create --title "PR develop -> main" --body "PR from develop branch to main branch" --reviewer HendrikTredoux --base main; fi
+          name: Create Pull Request
+
+  build-and-publish:
+    parameters:
+      path:
+        description: |
+          Specify Dockerfile path
+        type: string
+
+      repo:
+        description: Name of an Amazon ECR repository
+        type: string
+
+      tag:
+        description: A comma-separated string containing docker image tags to build and push (default = latest)
+        type: string
+
+      dockerfile:
+        type: string
+
+      extra-build-args:
+        type: string
+
+      app_folder:
+        type: string
+
+    docker:
+      - image: 'cimg/openjdk:11.0'
+    steps:
+      - attach_workspace:
+          at: .
+      - checkout
+      - aws-cli/install
+
+      - run:
+          command: find . -name 'pom.xml' | sort | xargs cat > /tmp/maven_cache_seed
+          name: Generate Cache Checksum
+          working_directory: $CIRCLE_WORKING_DIRECTORY
+
+      - restore_cache:
+          key: 'maven-{{ checksum "/tmp/maven_cache_seed" }}'
+
+      - run:
+          command: |
+            mkdir -p ~/.m2
+            echo $SETTINGS_SECURITY_XML | base64 -d > ~/.m2/settings-security.xml
+            echo $SETTINGS_XML | base64 -d > ~/.m2/settings.xml
+            cat ~/.m2/settings.xml
+            cat ~/.m2/settings-security.xml
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            echo 'export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain westerra --domain-owner 181741612687 --query authorizationToken --output text)' >> $BASH_ENV
+
+      - run:
+          name: mvn clean install
+          command: |
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain westerra --domain-owner 181741612687 --query authorizationToken --output text)
+            mvn -s ~/.m2/settings.xml -f <<parameters.app_folder>>/pom.xml clean install
+            
+      - save_cache:
+          key: 'maven-{{ checksum "/tmp/maven_cache_seed" }}'
+          paths:
+            - ~/.m2
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+
+      - run:
+          name: Update Dockerfile
+          command: |
+            mkdir -p docker docker/json docker/themes docker/providers
+            cp -rvf ./Dockerfile docker/
+            cp -rvf ./target/<<parameters.app_folder>>.jar docker/
+          working_directory: ./<<parameters.app_folder>>
+
+      - run:
+          name: list files inside docker
+          command: ls -la docker/*
+          working_directory: ./<<parameters.app_folder>>
+            
+      - aws-ecr/build-and-push-image:
+          account-url: AWS_ACCOUNT_URL
+          attach-workspace: true
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          create-repo: true
+          dockerfile: <<parameters.dockerfile>>
+          path: <<parameters.path>>
+          region: AWS_DEFAULT_REGION
+          repo: <<parameters.repo>>
+          tag: <<parameters.tag>>
+          extra-build-args: <<parameters.extra-build-args>>
+          skip-when-tags-exist: false
+          workspace-root: .
+          setup-remote-docker: true
+          remote-docker-layer-caching: true
+
+  deploy:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+      namespace:
+        description: |
+          Name of the cluster namespace
+        type: string
+      env:
+        description: |
+          Select the environment (dev/sit/uat/prod)
+        type: string
+      app_folder:
+        type: string
+      secrets:
+        type: string
+    steps:
+      - checkout
+      - kubernetes/install-kubectl
+      - aws-cli/install
+      - run:
+          command: |
+            curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
+            sudo apt-get install apt-transport-https --yes
+            echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+            sudo apt-get update
+            sudo apt-get install -y helm 
+          name: Setup helm
+      - run:
+          command: |
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY 
+            aws sts get-caller-identity
+            aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name << parameters.cluster-name >>
+            kubectl get pods --namespace << parameters.namespace >>
+            kubectl get svc --namespace << parameters.namespace >>
+          name: Display WCU << parameters.app_folder >> pods in DEV Cluster
+      - run:
+          command: |
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            <<parameters.secrets>> values.yaml-tmpl > values.yaml
+            helm upgrade -f values.yaml << parameters.app_folder >> -n << parameters.namespace >> . || helm install -f values.yaml << parameters.app_folder >> -n << parameters.namespace >> .
+            kubectl rollout status deployment/dbs-<< parameters.app_folder >> -n << parameters.namespace >>
+          name: Deploy WCU << parameters.app_folder >> Server in DEV Cluster
+          working_directory: ./<< parameters.app_folder >>/helm
+
+workflows:
+  deployment:
+    jobs:
+      - build-and-publish:
+          name: build-and-publish-for-payment-order-integration-service-for-develop-branch
+          context: bb-aws-dev
+          app_folder: payment-order-integration-service
+          path: ./payment-order-integration-service/docker
+          repo: dbs-payment-order-integration-service
+          dockerfile: Dockerfile
+          extra-build-args: '--build-arg JAR_FILE=payment-order-integration-service.jar'
+          tag: dev-${CIRCLE_SHA1:0:7},sit-${CIRCLE_SHA1:0:7}
+          filters:
+            branches:
+              only:
+                - develop
+
+      - build-and-publish:
+          name: build-and-publish-for-payment-order-integration-service-for-main-branch
+          context: bb-aws-uat
+          app_folder: payment-order-integration-service
+          path: ./payment-order-integration-service/docker
+          repo: dbs-payment-order-integration-service
+          dockerfile: Dockerfile
+          extra-build-args: '--build-arg JAR_FILE=payment-order-integration-service.jar'
+          tag: uat-${CIRCLE_SHA1:0:7},prod-${CIRCLE_SHA1:0:7}
+          filters:
+            branches:
+              only:
+                - main
+
+      - deploy:
+          name: deploy-payment-order-integration-service-dev
+          context: bb-aws-dev
+          requires:
+            - build-and-publish-for-payment-order-integration-service-for-develop-branch
+          app_folder: payment-order-integration-service
+          cluster-name: westerra-dev-eks
+          namespace: westerra-dev
+          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@'
+          env: dev
+          filters:
+            branches:
+              only:
+                - develop
+
+   
+      - request-to-deploy-in-sit:
+          requires:
+            - deploy-payment-order-integration-service-dev
+          type: approval
+          filters:
+            branches:
+              only:
+                - develop
+
+      - deploy:
+          name: deploy-payment-order-integration-service-sit
+          context: bb-aws-sit
+          requires:
+            - request-to-deploy-in-sit
+          app_folder: payment-order-integration-service
+          cluster-name: westerra-dev-eks
+          namespace: westerra-sit
+          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@'
+          env: sit
+          filters:
+            branches:
+              only:
+                - develop
+
+      - request-to-deploy-in-uat:
+          requires:
+            - build-and-publish-for-payment-order-integration-service-for-main-branch
+          type: approval
+          filters:
+            branches:
+              only:
+                - main
+
+      - deploy:
+          name: deploy-payment-order-integration-service-uat
+          context: bb-aws-uat
+          requires:
+            - request-to-deploy-in-uat
+          app_folder: payment-order-integration-service
+          cluster-name: westerra-uat-eks
+          namespace: westerra-uat
+          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@'
+          env: uat
+          filters:
+            branches:
+              only:
+                - main
+
+      - request-to-deploy-in-prod:
+          requires:
+            - deploy-payment-order-integration-service-uat
+          type: approval
+          filters:
+            branches:
+              only:
+                - main
+
+      - deploy:
+          name: deploy-payment-order-integration-service-prod
+          context: bb-aws-prod
+          requires:
+            - request-to-deploy-in-prod
+          app_folder: payment-order-integration-service
+          cluster-name: westerra-prod-eks
+          namespace: westerra-prod
+          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@'
+          env: prod
+          filters:
+            branches:
+              only:
+                - main
+
+      - approval-for-creating-pr-from-develop-to-main:
+          requires:
+            - deploy-payment-order-integration-service-sit
+          type: approval      
+          filters:
+            branches:
+              only:
+                - develop
+
+      - create-pr-from-develop-to-main:
+          requires:
+            - approval-for-creating-pr-from-develop-to-main
+          token: GITHUB_TOKEN       
+          filters:
+            branches:
+              only:
+                - develop
