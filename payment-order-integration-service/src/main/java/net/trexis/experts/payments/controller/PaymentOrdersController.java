@@ -1,5 +1,6 @@
 package net.trexis.experts.payments.controller;
 
+import com.backbase.buildingblocks.backend.security.auth.config.SecurityContextUtil;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CancelResponse;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostResponseBody;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PaymentOrdersController implements PaymentOrderIntegrationOutboundApi {
     private final PaymentOrdersService paymentOrdersService;
+    private final SecurityContextUtil securityContextUtil;
+
 
     @Override
     public ResponseEntity<CancelResponse> postCancelPaymentOrder(String bankReferenceId) {
@@ -23,6 +26,11 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
 
     @Override
     public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
-        return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody));
+        String externalUserId = null;
+        if(securityContextUtil.getOriginatingUserJwt().isPresent()){
+            externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();
+        }
+
+        return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
     }
 }
