@@ -1,254 +1,93 @@
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>com.backbase.buildingblocks</groupId>
-        <version>13.1.0</version>
-        <artifactId>service-sdk-starter-core</artifactId>
-        <relativePath/>
-    </parent>
-
     <groupId>net.trexis.experts</groupId>
-    <artifactId>trexis-backbase-payment-order-integration</artifactId>
+    <artifactId>backbase-payment-order-integration-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <packaging>war</packaging>
-    <name>Trexis :: Backbase :: Payment Order Integration Service</name>
+    <name>treXis :: Backbase :: Payment Order Integration Parent</name>
+    <packaging>pom</packaging>
 
     <properties>
-        <!-- GENERAL PROJECT SETTINGS -->
-        <java.version>11</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <spec.dependencies.path>${project.build.directory}/dependencies</spec.dependencies.path>
-
-        <!-- Trexis -->
-        <trexis-finite-client.version>1.0.1-SNAPSHOT</trexis-finite-client.version>
-
-        <!-- BACKBASE -->
-        <dbs.version>2.20.5.1</dbs.version>
-        <service-sdk-starter-core.version>13.1.0</service-sdk-starter-core.version>
-        <payment-order-service.version>1.3.126</payment-order-service.version>
-        <boat-maven-plugin.version>0.14.4</boat-maven-plugin.version>
+        <sig.secret.key>JWTSecretKeyDontUseInProduction!</sig.secret.key>
+        <user.context.key>JWTSecretKeyDontUseInProduction!</user.context.key>
+        <messaging.password>password</messaging.password>
+        <blade.version>4.20.0</blade.version>
+        <port>8054</port>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.backbase.buildingblocks</groupId>
-                <version>${service-sdk-starter-core.version}</version>
-                <artifactId>service-sdk-starter-core</artifactId>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.backbase.dbs</groupId>
-                <artifactId>banking-services-bom</artifactId>
-                <version>${dbs.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <dependencies>
-        <!-- BACKBASE -->
-        <dependency>
-            <groupId>com.backbase.buildingblocks</groupId>
-            <artifactId>api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.backbase.buildingblocks</groupId>
-            <artifactId>auth-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.backbase.buildingblocks</groupId>
-            <artifactId>communication</artifactId>
-        </dependency>
-
-        <!-- TREXIS -->
-        <dependency>
-            <groupId>net.trexis.experts</groupId>
-            <artifactId>finite-client</artifactId>
-            <version>${trexis-finite-client.version}</version>
-        </dependency>
-
-        <!-- MISC -->
-        <dependency>
-            <groupId>io.swagger</groupId>
-            <artifactId>swagger-annotations</artifactId>
-            <version>1.6.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openapitools</groupId>
-            <artifactId>jackson-databind-nullable</artifactId>
-            <version>0.2.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-commons</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-core</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-
-        <!-- TEST -->
-        <dependency>
-            <groupId>com.backbase.buildingblocks</groupId>
-            <artifactId>service-sdk-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <version>5.8.2</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <modules>
+        <module>payment-order-integration-service</module>
+    </modules>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>com.backbase.oss</groupId>
+                    <artifactId>blade-maven-plugin</artifactId>
+                    <version>${blade.version}</version>
+                    <configuration>
+                        <multiThreaded>true</multiThreaded>
+                        <!--<backbaseConfigDir>${project.build.directory}/config/backbase</backbaseConfigDir>-->
+                        <!--<contextFileDir>${project.build.directory}/config/tomcat/conf/Catalina/localhost/</contextFileDir>-->
+                        <!-- Generic System Properties for all services -->
+                        <masterBladeAddress>http://localhost:8080</masterBladeAddress>
+                        <systemProperties>
+                            <SIG_SECRET_KEY>${sig.secret.key}</SIG_SECRET_KEY>
+                            <USERCTX_KEY>${user.context.key}</USERCTX_KEY>
+                            <MESSAGING_PASSWORD>${messaging.password}</MESSAGING_PASSWORD>
+
+                            <!-- Eureka Configuration -->
+                            <eureka.client.serviceUrl.defaultZone>http://localhost:8080/registry/eureka/</eureka.client.serviceUrl.defaultZone>
+                            <eureka.instance.hostname>localhost</eureka.instance.hostname>
+                            <eureka.instance.preferIpAddress>false</eureka.instance.preferIpAddress>
+
+                            <!-- Active MQ Configuration -->
+                            <spring.activemq.broker-url>tcp://localhost:61616</spring.activemq.broker-url>
+                            <spring.activemq.user>admin</spring.activemq.user>
+                            <spring.activemq.password>admin</spring.activemq.password>
+
+                            <!-- Disable logging encoding -->
+                            <logging.secured.enabled>false</logging.secured.enabled>
+
+                            <!-- Limit sizing of consumers -->
+                            <backbase.communication.consumer-options.maxConcurrentConsumers>5</backbase.communication.consumer-options.maxConcurrentConsumers>
+                            <backbase.communication.consumer-options.concurrentConsumers>1</backbase.communication.consumer-options.concurrentConsumers>
+                            <backbase.communication.consumer-options.maxMessagesPerTask>100</backbase.communication.consumer-options.maxMessagesPerTask>
+
+                        </systemProperties>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
         <plugins>
             <plugin>
-                <groupId>com.backbase.buildingblocks</groupId>
-                <artifactId>service-sdk-build-utils-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <!-- Used when a service uses war packaging, silently fails otherwise -->
-                        <id>rename-executable-war</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>move-file</goal>
-                        </goals>
-                        <configuration>
-                            <source>${project.artifactId}-${project.version}-exec.jar-classes.war</source>
-                            <dest>${project.artifactId}.jar</dest>
-                            <attach>true</attach>
-                            <failIfMissing>false</failIfMissing>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>repackage</id>
-                        <goals>
-                            <goal>build-info</goal>
-                            <goal>repackage</goal>
-                        </goals>
-                        <configuration>
-                            <classifier>classes</classifier>
-                            <attach>false</attach>
-                            <executable>true</executable>
-                            <finalName>${project.artifactId}-${project.version}-exec.jar</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <!-- Add artifact containing custom factory as plugin dependency -->
-                    <dependency>
-                        <groupId>com.backbase.buildingblocks</groupId>
-                        <artifactId>backbase-loader-tool</artifactId>
-                        <version>${service-sdk-starter-core.version}</version>
-                    </dependency>
-                </dependencies>
-                <configuration>
-                    <!-- Use custom layout factory-->
-                    <layoutFactory implementation="com.backbase.boot.layout.BackbaseLayoutFactory"/>
-                    <environmentVariables>
-                        <SIG_SECRET_KEY>JWTSecretKeyDontUseInProduction!</SIG_SECRET_KEY>
-                    </environmentVariables>
-
-                </configuration>
-            </plugin>
-
-            <!-- Inject secret keys for local development -->
-            <!-- Same keys as the Edge has -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>properties-maven-plugin</artifactId>
-                <version>1.0.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>set-system-properties</goal>
-                        </goals>
-                        <configuration>
-                            <properties>
-                                <property>
-                                    <name>SIG_SECRET_KEY</name>
-                                    <value>JWTSecretKeyDontUseInProduction!</value>
-                                </property>
-                                <property>
-                                    <name>EXTERNAL_SIG_SECRET_KEY</name>
-                                    <value>JWTSecretKeyDontUseInProduction!</value>
-                                </property>
-                                <property>
-                                    <name>EXTERNAL_ENC_SECRET_KEY</name>
-                                    <value>JWTEncKeyDontUseInProduction666!</value>
-                                </property>
-                            </properties>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>unpack-backbase-openapi-spec</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>unpack</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>com.backbase.dbs.paymentorder</groupId>
-                                    <artifactId>payment-order-service</artifactId>
-                                    <version>${payment-order-service.version}</version>
-                                    <classifier>api</classifier>
-                                    <outputDirectory>${project.build.directory}/yaml</outputDirectory>
-                                    <type>zip</type>
-                                    <overWrite>true</overWrite>
-                                </artifactItem>
-                            </artifactItems>
-                            <includes>**/*.yaml, **/*.json</includes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>com.backbase.oss</groupId>
-                <artifactId>boat-maven-plugin</artifactId>
-                <version>${boat-maven-plugin.version}</version>
-                <executions>
-                    <!-- Generate OpenAPI interface stubs. -->
-                    <execution>
-                        <id>payment-order-integration-outbound-api</id>
-                        <goals>
-                            <goal>generate-spring-boot-embedded</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <inputSpec>
-                                ${basedir}/target/yaml/payment/payment-order-integration-outbound-api-v2.0.11.yaml
-                            </inputSpec>
-                            <apiPackage>com.backbase.dbs.arrangement.arrangement-manager.api.client.v2</apiPackage>
-                            <modelPackage>com.backbase.dbs.arrangement.arrangement-manager.v2.model</modelPackage>
-                        </configuration>
-                    </execution>
-                </executions>
+                <artifactId>blade-maven-plugin</artifactId>
+                <inherited>false</inherited>
+                <configuration>
+                    <port>${port}</port>
+                    <detectAndConfigureSpringConfigLocation>true</detectAndConfigureSpringConfigLocation>
+                    <systemProperties>
+                        <!-- Eureka Configuration -->
+                        <eureka.instance.nonSecurePort>${port}</eureka.instance.nonSecurePort>
+                        <server.port>${port}</server.port>
+                    </systemProperties>
+                    <stages>
+                        <stage>
+                            <id>${project.artifactId}</id>
+                            <name>payment-order-integration</name>
+                            <multiThreaded>true</multiThreaded>
+                            <webApps>
+                                <webApp>
+                                    <module>payment-order-integration-service</module>
+                                </webApp>
+                            </webApps>
+                        </stage>
+                    </stages>
+                </configuration>
             </plugin>
         </plugins>
     </build>
