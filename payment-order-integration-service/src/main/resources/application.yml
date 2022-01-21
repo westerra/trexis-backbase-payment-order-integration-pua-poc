@@ -24,7 +24,7 @@ sso:
 management:
   health:
     jms:
-     enabled: false
+      enabled: false
 
 finite:
   hosturl: http://localhost:9090
@@ -32,9 +32,4 @@ finite:
 
 logging:
   level:
-    net.trexis.experts: INFO
-    root: INFO
-
-payment:
-  schedule:
-    defaultEndDate: "2078-12-21"
+    net.trexis.experts: DEBUG

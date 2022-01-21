@@ -1,9 +1,20 @@
-## treXis Backbase Payment Order Integration
+## treXis Backbase Payment Orders Integration
+The treXis Backbase Payment Order Integration repository is a single microservice that implements the Backbase SDK and service end points to allow for the exchanges of payments with the Core via Finite.
+
 This repository is utilizing Backbase depedencies, which require configuration of your local maven environment to have access to Backbase depedencies.  Consult Backbase Support for your credentials.
 
 Perform these commands to build this repository :
 ```
 mvn clean install
+```
+
+
+### Finite Dependency
+This project utilizes the Finite API, by means of the treXis Finite Java Client dependency.  The Finite Client require the following configurations:
+```
+finite:
+  hosturl: http://localhost:9090
+  apikey: demo-api-key-do-not-use-in-production
 ```
 
 ### Versions and Upgrade
