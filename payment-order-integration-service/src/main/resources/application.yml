@@ -32,4 +32,4 @@ finite:
 
 logging:
   level:
-    net.trexis.experts: DEBUG
+    net.trexis.experts: INFO
