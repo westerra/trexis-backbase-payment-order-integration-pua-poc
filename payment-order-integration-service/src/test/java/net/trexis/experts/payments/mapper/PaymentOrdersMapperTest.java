@@ -23,29 +23,6 @@ public class PaymentOrdersMapperTest {
         schedule.setRepeat(3);
         var paymentOrdersPostRequestBody = new PaymentOrdersPostRequestBody();
         paymentOrdersPostRequestBody.setSchedule(schedule);
-
-        LocalDate weeklyLocalDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody);
-        Assert.assertEquals("2021-04-22", weeklyLocalDate.toString());
-        //BiWeekly
-        schedule.setTransferFrequency(Schedule.TransferFrequencyEnum.BIWEEKLY);
-        paymentOrdersPostRequestBody.setSchedule(schedule);
-        LocalDate biWeeklyLocalDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody);
-        Assert.assertEquals("2021-05-13", biWeeklyLocalDate.toString());
-        //Monthly
-        schedule.setTransferFrequency(Schedule.TransferFrequencyEnum.MONTHLY);
-        paymentOrdersPostRequestBody.setSchedule(schedule);
-        LocalDate monthlyWeeklyLocalDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody);
-        Assert.assertEquals("2021-07-01", monthlyWeeklyLocalDate.toString());
-        //Quarterly
-        schedule.setTransferFrequency(Schedule.TransferFrequencyEnum.QUARTERLY);
-        paymentOrdersPostRequestBody.setSchedule(schedule);
-        LocalDate quarterlyLocalDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody);
-        Assert.assertEquals("2022-01-01", quarterlyLocalDate.toString());
-        //Yearly
-        schedule.setTransferFrequency(Schedule.TransferFrequencyEnum.YEARLY);
-        paymentOrdersPostRequestBody.setSchedule(schedule);
-        LocalDate yearlyLocalDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody);
-        Assert.assertEquals("2024-04-01", yearlyLocalDate.toString());
     }
 
     @Test
