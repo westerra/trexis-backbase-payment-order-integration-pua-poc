@@ -4,6 +4,7 @@ import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CancelResponse;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostResponseBody;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
+import net.trexis.experts.payments.configuration.PaymentConfiguration;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
@@ -20,12 +21,12 @@ public class PaymentOrdersService {
     public static final String XTRACE = "xtrace";
     private final ExchangeApi exchangeApi;
     private final IngestionApi ingestionApi;
-
+    private final PaymentConfiguration paymentConfiguration;
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
         try {
             log.debug("BB Payment Request {}", paymentOrdersPostRequestBody);
-            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody);
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, paymentConfiguration);
             log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
 
             var exchangeTransactionResult =
@@ -37,7 +38,7 @@ public class PaymentOrdersService {
             var paymentOrderStatus =
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody);
             //Send refresh request on exchange.
-            if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED.getValue())) {
+            if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
                 this.triggerIngestion(externalUserId);
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();

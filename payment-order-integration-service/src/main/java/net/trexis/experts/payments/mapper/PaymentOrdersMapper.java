@@ -2,35 +2,33 @@ package net.trexis.experts.payments.mapper;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.finite.api.commons.Utilities.DateUtilities;
-import net.trexis.experts.payments.models.FiniteTransferFrequency;
+import io.swagger.codegen.v3.service.exception.BadRequestException;
+import net.trexis.experts.payments.configuration.PaymentConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.apache.commons.lang3.StringUtils;
 import com.finite.api.model.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 
 @Slf4j
-@Component
 public class PaymentOrdersMapper {
-    @Value("${payment.schedule.defaultEndDate}")
-    private static String defaultEndDate;
 
-    private PaymentOrdersMapper() { }
     public static final String CACHE_EXTERNAL_ID = "id";
 
-    public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+    public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, PaymentConfiguration paymentConfiguration) {
         var exchangeTransaction = new ExchangeTransaction();
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
         exchangeTransaction.setAmount(new BigDecimal(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount()));
 
-        String effectiveDate = paymentOrdersPostRequestBody.getRequestedExecutionDate().toString();
-        if(DateUtilities.validateISODateOnly(effectiveDate)) effectiveDate += "T00:00:00";
-        exchangeTransaction.setExecutionDate(effectiveDate);
+        exchangeTransaction.setExecutionDate(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().toString()));
         if(paymentOrdersPostRequestBody.getTransferTransactionInformation() != null &&
                 paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation() != null &&
                 !StringUtils.isEmpty(paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation().getContent())) {
@@ -53,26 +51,16 @@ public class PaymentOrdersMapper {
             var schedule = new Schedule();
             exchangeTransaction.setIsRecurring(Boolean.TRUE);
             schedule.setStrategy(Schedule.StrategyEnum.NONE);
-            schedule.setFrequency(FiniteTransferFrequency.valueOf(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString()).getFrequency());
+            schedule.setFrequency(paymentConfiguration.getFiniteFrequency(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString()));
             schedule.setIsEveryTime(Boolean.TRUE);
             schedule.setDayOn(paymentOrdersPostRequestBody.getSchedule().getOn().toString());
-            String isoStartDate = paymentOrdersPostRequestBody.getSchedule().getStartDate().toString();
-            if(DateUtilities.validateISODateOnly(isoStartDate)) isoStartDate += "T00:00:00";
-            schedule.setStartDateTime(isoStartDate);
-            if(paymentOrdersPostRequestBody.getSchedule().getRepeat() != null) {
-                String isoEndDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody).toString();
-                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
-                schedule.setEndDateTime(isoEndDate);
-                log.debug("Schedule End Date calculated as Start Date {}: Repeat {}: End Date", schedule.getStartDateTime(), paymentOrdersPostRequestBody.getSchedule().getRepeat(), schedule.getEndDateTime());
-            } else if(paymentOrdersPostRequestBody.getSchedule().getEndDate() != null) {
-                String isoEndDate = paymentOrdersPostRequestBody.getSchedule().getEndDate().toString();
-                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
-                schedule.setEndDateTime(isoEndDate);
-            } else {
-                String isoEndDate = defaultEndDate;
-                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
-                schedule.setEndDateTime(isoEndDate);
+            schedule.setStartDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getStartDate().toString()));
+
+            //The end date calculation takes place in Finite, as it will be specific per core/customer
+            if(paymentOrdersPostRequestBody.getSchedule().getEndDate()!=null){
+                schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getEndDate().toString()));
             }
+
             exchangeTransaction.setRecurringSchedule(schedule);
         } else if(!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now())){
             var schedule = new Schedule();
@@ -80,29 +68,10 @@ public class PaymentOrdersMapper {
             schedule.setFrequency("ONCE");
             schedule.setStartDateTime(exchangeTransaction.getExecutionDate());
             //Add 1 week as expiration for future transfers.
-            String isoEndDate = paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString();
-            if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
-            schedule.setEndDateTime(isoEndDate);
+            schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString()));
             exchangeTransaction.setRecurringSchedule(schedule);
         }
         return exchangeTransaction;
-    }
-
-    public static LocalDate calculateEndDateTimeFromRepeat(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
-        switch(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency()) {
-            case WEEKLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusWeeks(paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            case BIWEEKLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusWeeks( 2 * paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            case MONTHLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusMonths(paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            case QUARTERLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusMonths( 3 * paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            case YEARLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusYears(paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            default:
-                throw new IllegalStateException("Unexpected value for transfer frequency: " + paymentOrdersPostRequestBody.getSchedule().getTransferFrequency());
-        }
     }
 
     public static PaymentOrderStatus createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
@@ -118,12 +87,27 @@ public class PaymentOrdersMapper {
         return PaymentOrderStatus.ACCEPTED;
     }
 
-    public static CacheReference toFiniteRefreshCacheReference(String attributeValue) {
-        var cacheReference = new CacheReference();
-        var attribute = new Attribute();
-        attribute.setName(CACHE_EXTERNAL_ID);
-        attribute.setValue(attributeValue);
-        cacheReference.addAttributesItem(attribute);
-        return cacheReference;
+
+    private static String makeValidISODateTime(String dateString){
+        try {
+            if(DateUtilities.validateISODateTime(dateString)){
+                return dateString;
+            } else {
+                if(DateUtilities.validateISODateOnly(dateString)){
+                    DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+                    return DateUtilities.convertToISODateTime(formatter.parse(dateString));
+                } else {
+                    Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(dateString));
+                    return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
+                }
+            }
+        } catch (Exception e) {
+            try{
+                Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE.parse(dateString));
+                return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
+            } catch (Exception e2) {
+                throw new BadRequestException("Unable to parse date to ISO: " + dateString);
+            }
+        }
     }
 }
