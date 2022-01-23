@@ -2,6 +2,7 @@ package net.trexis.experts.payments.mapper;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.finite.api.commons.Utilities.DateUtilities;
+import io.swagger.codegen.v3.service.exception.BadRequestException;
 import net.trexis.experts.payments.configuration.PaymentConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
@@ -9,7 +10,11 @@ import org.apache.commons.lang3.StringUtils;
 import com.finite.api.model.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Date;
 
 @Slf4j
 public class PaymentOrdersMapper {
@@ -50,15 +55,11 @@ public class PaymentOrdersMapper {
             schedule.setFrequency(paymentConfiguration.getFiniteFrequency(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString()));
             schedule.setIsEveryTime(Boolean.TRUE);
             schedule.setDayOn(paymentOrdersPostRequestBody.getSchedule().getOn().toString());
-            String isoStartDate = paymentOrdersPostRequestBody.getSchedule().getStartDate().toString();
-            if(DateUtilities.validateISODateOnly(isoStartDate)) isoStartDate += "T00:00:00";
-            schedule.setStartDateTime(isoStartDate);
+            schedule.setStartDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getStartDate().toString()));
 
             //The end date calculation takes place in Finite, as it will be specific per core/customer
             if(paymentConfiguration.getSchedule().getDefaultEndDate()!=null){
-                String isoEndDate = paymentConfiguration.getSchedule().getDefaultEndDate();
-                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
-                schedule.setEndDateTime(isoEndDate);
+                schedule.setEndDateTime(paymentConfiguration.getSchedule().getDefaultEndDate());
             }
 
             exchangeTransaction.setRecurringSchedule(schedule);
@@ -68,9 +69,7 @@ public class PaymentOrdersMapper {
             schedule.setFrequency("ONCE");
             schedule.setStartDateTime(exchangeTransaction.getExecutionDate());
             //Add 1 week as expiration for future transfers.
-            String isoEndDate = paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString();
-            if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
-            schedule.setEndDateTime(isoEndDate);
+            schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString()));
             exchangeTransaction.setRecurringSchedule(schedule);
         }
         return exchangeTransaction;
@@ -89,12 +88,18 @@ public class PaymentOrdersMapper {
         return PaymentOrderStatus.ACCEPTED;
     }
 
-    public static CacheReference toFiniteRefreshCacheReference(String attributeValue) {
-        var cacheReference = new CacheReference();
-        var attribute = new Attribute();
-        attribute.setName(CACHE_EXTERNAL_ID);
-        attribute.setValue(attributeValue);
-        cacheReference.addAttributesItem(attribute);
-        return cacheReference;
+
+    private static String makeValidISODateTime(String date){
+        try {
+            Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(date));
+            return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
+        } catch (DateTimeParseException e) {
+            try{
+                Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE.parse(date));
+                return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
+            } catch (DateTimeParseException e2) {
+                throw new BadRequestException("Unable to parse date to ISO");
+            }
+        }
     }
 }
