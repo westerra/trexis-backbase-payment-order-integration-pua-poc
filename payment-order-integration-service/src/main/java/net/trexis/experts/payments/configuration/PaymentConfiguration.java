@@ -13,13 +13,7 @@ import java.util.Optional;
 @ConfigurationProperties(prefix = "payment")
 public class PaymentConfiguration {
 
-    private Schedule schedule;
     private List<PaymentFrequency> frequencies;
-
-    @Data
-    public static class Schedule {
-        private String defaultEndDate;
-    }
 
     @Data
     public static class PaymentFrequency {

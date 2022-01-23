@@ -10,10 +10,11 @@ import org.apache.commons.lang3.StringUtils;
 import com.finite.api.model.*;
 
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 @Slf4j
@@ -56,8 +57,8 @@ public class PaymentOrdersMapper {
             schedule.setStartDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getStartDate().toString()));
 
             //The end date calculation takes place in Finite, as it will be specific per core/customer
-            if(paymentConfiguration.getSchedule().getDefaultEndDate()!=null){
-                schedule.setEndDateTime(paymentConfiguration.getSchedule().getDefaultEndDate());
+            if(paymentOrdersPostRequestBody.getSchedule().getEndDate()!=null){
+                schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getEndDate().toString()));
             }
 
             exchangeTransaction.setRecurringSchedule(schedule);
@@ -87,24 +88,25 @@ public class PaymentOrdersMapper {
     }
 
 
-    private static String makeValidISODateTime(String date){
+    private static String makeValidISODateTime(String dateString){
         try {
-            if(DateUtilities.validateISODateTime(date)){
-                return date;
+            if(DateUtilities.validateISODateTime(dateString)){
+                return dateString;
             } else {
-                if(DateUtilities.validateISODateOnly(date)){
-                    return DateUtilities.convertToISODateTime(DateUtilities.convertISOToDate(date));
+                if(DateUtilities.validateISODateOnly(dateString)){
+                    DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+                    return DateUtilities.convertToISODateTime(formatter.parse(dateString));
                 } else {
-                    Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(date));
+                    Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(dateString));
                     return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
                 }
             }
         } catch (Exception e) {
             try{
-                Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE.parse(date));
+                Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE.parse(dateString));
                 return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
             } catch (Exception e2) {
-                throw new BadRequestException("Unable to parse date to ISO");
+                throw new BadRequestException("Unable to parse date to ISO: " + dateString);
             }
         }
     }

@@ -38,7 +38,7 @@ public class PaymentOrdersService {
             var paymentOrderStatus =
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody);
             //Send refresh request on exchange.
-            if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED.getValue())) {
+            if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
                 this.triggerIngestion(externalUserId);
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
