@@ -2,27 +2,21 @@ package net.trexis.experts.payments.mapper;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.finite.api.commons.Utilities.DateUtilities;
-import net.trexis.experts.payments.models.FiniteTransferFrequency;
+import net.trexis.experts.payments.configuration.PaymentConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.apache.commons.lang3.StringUtils;
 import com.finite.api.model.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Slf4j
-@Component
 public class PaymentOrdersMapper {
-    @Value("${payment.schedule.defaultEndDate}")
-    private static String defaultEndDate;
 
-    private PaymentOrdersMapper() { }
     public static final String CACHE_EXTERNAL_ID = "id";
 
-    public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+    public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, PaymentConfiguration paymentConfiguration) {
         var exchangeTransaction = new ExchangeTransaction();
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
@@ -53,26 +47,20 @@ public class PaymentOrdersMapper {
             var schedule = new Schedule();
             exchangeTransaction.setIsRecurring(Boolean.TRUE);
             schedule.setStrategy(Schedule.StrategyEnum.NONE);
-            schedule.setFrequency(FiniteTransferFrequency.valueOf(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString()).getFrequency());
+            schedule.setFrequency(paymentConfiguration.getFiniteFrequency(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString()));
             schedule.setIsEveryTime(Boolean.TRUE);
             schedule.setDayOn(paymentOrdersPostRequestBody.getSchedule().getOn().toString());
             String isoStartDate = paymentOrdersPostRequestBody.getSchedule().getStartDate().toString();
             if(DateUtilities.validateISODateOnly(isoStartDate)) isoStartDate += "T00:00:00";
             schedule.setStartDateTime(isoStartDate);
-            if(paymentOrdersPostRequestBody.getSchedule().getRepeat() != null) {
-                String isoEndDate = PaymentOrdersMapper.calculateEndDateTimeFromRepeat(paymentOrdersPostRequestBody).toString();
-                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
-                schedule.setEndDateTime(isoEndDate);
-                log.debug("Schedule End Date calculated as Start Date {}: Repeat {}: End Date", schedule.getStartDateTime(), paymentOrdersPostRequestBody.getSchedule().getRepeat(), schedule.getEndDateTime());
-            } else if(paymentOrdersPostRequestBody.getSchedule().getEndDate() != null) {
-                String isoEndDate = paymentOrdersPostRequestBody.getSchedule().getEndDate().toString();
-                if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
-                schedule.setEndDateTime(isoEndDate);
-            } else {
-                String isoEndDate = defaultEndDate;
+
+            //The end date calculation takes place in Finite, as it will be specific per core/customer
+            if(paymentConfiguration.getSchedule().getDefaultEndDate()!=null){
+                String isoEndDate = paymentConfiguration.getSchedule().getDefaultEndDate();
                 if(DateUtilities.validateISODateOnly(isoEndDate)) isoEndDate += "T00:00:00";
                 schedule.setEndDateTime(isoEndDate);
             }
+
             exchangeTransaction.setRecurringSchedule(schedule);
         } else if(!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now())){
             var schedule = new Schedule();
@@ -86,23 +74,6 @@ public class PaymentOrdersMapper {
             exchangeTransaction.setRecurringSchedule(schedule);
         }
         return exchangeTransaction;
-    }
-
-    public static LocalDate calculateEndDateTimeFromRepeat(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
-        switch(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency()) {
-            case WEEKLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusWeeks(paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            case BIWEEKLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusWeeks( 2 * paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            case MONTHLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusMonths(paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            case QUARTERLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusMonths( 3 * paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            case YEARLY:
-                return paymentOrdersPostRequestBody.getSchedule().getStartDate().plusYears(paymentOrdersPostRequestBody.getSchedule().getRepeat());
-            default:
-                throw new IllegalStateException("Unexpected value for transfer frequency: " + paymentOrdersPostRequestBody.getSchedule().getTransferFrequency());
-        }
     }
 
     public static PaymentOrderStatus createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {

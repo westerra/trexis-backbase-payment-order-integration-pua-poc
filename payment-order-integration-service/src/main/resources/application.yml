@@ -33,6 +33,28 @@ finite:
 payment:
   schedule:
     defaultEndDate: "2050-01-01T00:00:00"
+  frequencies:
+    -
+      backbase: ONCE
+      finite: SINGLE_PAY
+    -
+      backbase: DAILY
+      finite: DAILY
+    -
+      backbase: WEEKLY
+      finite: WEEKLY
+    -
+      backbase: BIWEEKLY
+      finite: BIWEEKLY
+    -
+      backbase: MONTHLY
+      finite: MONTHLY
+    -
+      backbase: QUARTERLY
+      finite: QUARTERLY
+    -
+      backbase: YEARLY
+      finite: ANNUALY
 
 logging:
   level:
