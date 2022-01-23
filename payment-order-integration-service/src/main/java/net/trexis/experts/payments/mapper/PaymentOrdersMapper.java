@@ -27,9 +27,7 @@ public class PaymentOrdersMapper {
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
         exchangeTransaction.setAmount(new BigDecimal(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount()));
 
-        String effectiveDate = paymentOrdersPostRequestBody.getRequestedExecutionDate().toString();
-        if(DateUtilities.validateISODateOnly(effectiveDate)) effectiveDate += "T00:00:00";
-        exchangeTransaction.setExecutionDate(effectiveDate);
+        exchangeTransaction.setExecutionDate(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().toString()));
         if(paymentOrdersPostRequestBody.getTransferTransactionInformation() != null &&
                 paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation() != null &&
                 !StringUtils.isEmpty(paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation().getContent())) {
@@ -91,13 +89,21 @@ public class PaymentOrdersMapper {
 
     private static String makeValidISODateTime(String date){
         try {
-            Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(date));
-            return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
-        } catch (DateTimeParseException e) {
+            if(DateUtilities.validateISODateTime(date)){
+                return date;
+            } else {
+                if(DateUtilities.validateISODateOnly(date)){
+                    return DateUtilities.convertToISODateTime(DateUtilities.convertISOToDate(date));
+                } else {
+                    Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(date));
+                    return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
+                }
+            }
+        } catch (Exception e) {
             try{
                 Instant isoDateTimeInstant = Instant.from(DateTimeFormatter.ISO_DATE.parse(date));
                 return DateUtilities.convertToISODateTime(new Date(isoDateTimeInstant.toEpochMilli()));
-            } catch (DateTimeParseException e2) {
+            } catch (Exception e2) {
                 throw new BadRequestException("Unable to parse date to ISO");
             }
         }
