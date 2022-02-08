@@ -50,6 +50,7 @@ public class PaymentOrdersMapper {
         if(!paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
             var schedule = new Schedule();
             exchangeTransaction.setIsRecurring(Boolean.TRUE);
+            schedule.setRepeatCount(paymentOrdersPostRequestBody.getSchedule().getRepeat());
             schedule.setStrategy(Schedule.StrategyEnum.NONE);
             schedule.setFrequency(paymentConfiguration.getFiniteFrequency(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString()));
             schedule.setIsEveryTime(Boolean.TRUE);
