@@ -52,7 +52,7 @@ payment:
       finite: QUARTERLY
     -
       backbase: YEARLY
-      finite: ANNUALY
+      finite: ANNUALLY
 
 logging:
   level:
