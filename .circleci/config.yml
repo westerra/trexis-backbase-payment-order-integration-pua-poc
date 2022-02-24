@@ -81,8 +81,7 @@ jobs:
 
             curl --location --request POST "$pr_comment_url" \
             -u $GH_USER:$GH_TOKEN \
-            --header 'Content-Type: application/json' \
-            -d @stats.txt
+            -d "$(cat stats.txt)"
 
   create-pr-from-develop-to-main:
     docker:
