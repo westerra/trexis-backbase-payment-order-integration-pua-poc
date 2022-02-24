@@ -385,7 +385,7 @@ workflows:
                 - develop
 
       - veracode_scan:
-          name: veracode_scan_for_pr_against_develop_branch
+          name: Veracode Scanning
           VERACODE_APP_NAME: trexis-backbase-payment-order-integration
           app_folder: payment-order-integration-service
           context: 
