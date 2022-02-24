@@ -21,10 +21,16 @@ jobs:
       app_folder:
         type: string
 
+      token:
+        description: |
+          Pass Github token
+        type: env_var_name
+
     steps:
       - attach_workspace:
           at: .
       - checkout
+      - gh/setup
       - aws-cli/install
 
       - run:
@@ -68,19 +74,7 @@ jobs:
       - run:
           name: Post Stats to GitHub PR
           command: |
-            sudo apt-get install jq
-            pr_response=$(curl --location --request GET "https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls?head=$CIRCLE_PROJECT_USERNAME:$CIRCLE_BRANCH&state=open" -u $GH_USER:$GH_TOKEN)
-
-            if [ $(echo $pr_response | jq length) -eq 0 ]; then
-              echo "No PR found to update"
-            else
-              pr_comment_url=$(echo $pr_response | jq -r ".[]._links.comments.href")
-            fi
-
-            curl --location --request POST "$pr_comment_url" \
-            -u $GH_USER:$GH_TOKEN \
-            --header 'Content-Type: application/json' \
-            --data-raw '{"body": "$(cat stats.txt)"}
+            gh pr comment $CIRCLE_BRANCH --body "$(cat stats.txt)"
 
   create-pr-from-develop-to-main:
     docker:
@@ -389,6 +383,7 @@ workflows:
           name: Veracode Scanning
           VERACODE_APP_NAME: trexis-backbase-payment-order-integration
           app_folder: payment-order-integration-service
+          token: GITHUB_TOKEN
           context: 
             - veracode
             - bb-aws-dev
