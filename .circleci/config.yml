@@ -79,7 +79,7 @@ jobs:
       - run:
           name: Veracode Scan Status
           command: ./veracode-script/veracode-scan.sh $VERACODE_API_ID $VERACODE_API_KEY <<parameters.VERACODE_APP_NAME>> ./<<parameters.app_folder>>/target <<parameters.VERACODE_APP_NAME>>-$CIRCLE_BUILD_NUM 
-
+          no_output_timeout: 30m
 
   create-pr-from-develop-to-main:
     docker:
