@@ -57,28 +57,12 @@ jobs:
       - save_cache:
           key: 'maven-{{ checksum "/tmp/maven_cache_seed" }}'
           paths:
-            - ~/.m2
-
-      - run:
-          name: set permissions
-          command: |
-            mkdir -p ~/.ssh
-            echo $SSH_KNOWN_HOSTS | base64 -d > ~/.ssh/known_hosts
-            echo $SSH_PB_KEY | base64 -d > ~/.ssh/id_rsa.pub
-            echo $SSH_PV_KEY | base64 -d > ~/.ssh/id_rsa
-            echo $SSH_CONFIG | base64 -d > ~/.ssh/config
-            chmod 600 ~/.ssh/id_rsa
-            eval "$(ssh-agent -s)" &
-            ssh-add ~/.ssh/id_rsa
-
-      - run:
-          name: clone veracode script
-          command: |
-            git clone git@github.com:westerra/veracode-script.git         
+            - ~/.m2 
 
       - run:
           name: Veracode Scan Status
-          command: ./veracode-script/veracode-scan.sh $VERACODE_API_ID $VERACODE_API_KEY <<parameters.VERACODE_APP_NAME>> ./<<parameters.app_folder>>/target <<parameters.VERACODE_APP_NAME>>-$CIRCLE_BUILD_NUM 
+          command: |
+            curl -sSL  https://download.sourceclear.com/ci.sh | SCAN_DIR="./<<parameters.app_folder>>/" sh
           no_output_timeout: 120m
 
   create-pr-from-develop-to-main:
