@@ -390,6 +390,7 @@ workflows:
           app_folder: payment-order-integration-service
           context: 
             - veracode
+            - bb-aws-dev
           filters:
             branches:
               ignore:
