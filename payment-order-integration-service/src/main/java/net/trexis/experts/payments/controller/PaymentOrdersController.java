@@ -9,9 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Size;
-
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -36,7 +33,13 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     }
 
     @Override
-    public ResponseEntity<PaymentOrderPutResponseBody> putPaymentOrder(@Size(max = 64) String bankReferenceId, @Valid PaymentOrderPutRequestBody paymentOrderPutRequestBody) {
-        return null;
+    public ResponseEntity<PaymentOrderPutResponseBody> putPaymentOrder(String bankReferenceId, PaymentOrderPutRequestBody paymentOrderPutRequestBody) {
+        String externalUserId = null;
+        if(securityContextUtil.getOriginatingUserJwt().isPresent()){
+            externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();
+        }
+
+        // TODO: find out whether bankReferenceId is the same as Finite exchangeId. If not, we'll need to do some type of lookup
+        return ResponseEntity.ok(paymentOrdersService.updatePaymentOrder(bankReferenceId, paymentOrderPutRequestBody, externalUserId));
     }
 }
