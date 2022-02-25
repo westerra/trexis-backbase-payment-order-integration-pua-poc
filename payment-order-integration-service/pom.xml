@@ -5,14 +5,14 @@
 
     <parent>
         <groupId>com.backbase.buildingblocks</groupId>
-        <version>13.1.0</version>
+        <version>13.4.0</version>
         <artifactId>service-sdk-starter-core</artifactId>
         <relativePath />
     </parent>
 
     <groupId>net.trexis.experts</groupId>
     <artifactId>payment-order-integration-service</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>war</packaging>
     <name>Trexis :: Backbase :: Payment Order Integration Service</name>
 
@@ -25,7 +25,7 @@
         <!-- Trexis -->
         <trexis-finite-client.version>1.9.6-SNAPSHOT</trexis-finite-client.version>
         <finite-utilities.version>1.9.6-SNAPSHOT</finite-utilities.version>
-        <trexis-backbase-ingestion-api.version>1.0.1-SNAPSHOT</trexis-backbase-ingestion-api.version>
+        <trexis-backbase-ingestion-api.version>1.0.2-SNAPSHOT</trexis-backbase-ingestion-api.version>
 
         <!-- SPEC -->
         <swagger-annotations.version>1.6.1</swagger-annotations.version>
@@ -34,9 +34,9 @@
         <spec.dependencies.path>${project.build.directory}/dependencies</spec.dependencies.path>
 
         <!-- BACKBASE -->
-        <dbs.version>2.20.5.1</dbs.version>
-        <service-sdk-starter-core.version>13.1.0</service-sdk-starter-core.version>
-        <payment-order-service.version>1.3.267</payment-order-service.version>
+        <dbs.version>2022.01-LTS</dbs.version>
+        <service-sdk-starter-core.version>13.4.0</service-sdk-starter-core.version>
+        <payment-order-service.version>1.3.262.1</payment-order-service.version>
         <boat-maven-plugin.version>0.14.4</boat-maven-plugin.version>
         <ignored-lint-rules>150,219,215,218,166,136,174,235,107,171,224,143,151,129,146,147,172,145,115,132,120,134,183,154,105,104,130,118,110,153,101,176,116,M009,H002,M010,H001,M008,S005,S006,S007,M011,M0012</ignored-lint-rules>
         <blade.version>4.20.0</blade.version>
@@ -52,8 +52,8 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>com.backbase.dbs</groupId>
-                <artifactId>banking-services-bom</artifactId>
+                <groupId>com.backbase</groupId>
+                <artifactId>backbase-bom</artifactId>
                 <version>${dbs.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
