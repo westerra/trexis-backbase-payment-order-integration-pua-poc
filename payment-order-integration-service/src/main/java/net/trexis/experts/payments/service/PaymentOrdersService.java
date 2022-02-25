@@ -1,8 +1,6 @@
 package net.trexis.experts.payments.service;
 
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CancelResponse;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostResponseBody;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
 import net.trexis.experts.payments.configuration.PaymentConfiguration;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
@@ -51,6 +49,37 @@ public class PaymentOrdersService {
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
             return paymentOrdersPostResponseBody;
+        }
+    }
+
+    public PaymentOrderPutResponseBody updatePaymentOrder(String exchangeId, PaymentOrderPutRequestBody putRequestBody, String externalUserId) {
+        try {
+            log.debug("BB Payment Request {}", putRequestBody);
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(putRequestBody, paymentConfiguration);
+            log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
+
+            var exchangeTransactionResult =
+                    exchangeApi.updateExchangeTransaction(exchangeId, exchangeTransaction, null, null);
+            log.debug("Payment with result {}", exchangeTransactionResult.toString());
+            if(exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
+                throw new PaymentOrdersServiceException().withMessage("Unable to retrieve exchange transaction id from result");
+            }
+            var paymentOrderStatus =
+                    PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody);
+            //Send refresh request on exchange.
+            if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
+                this.triggerIngestion(externalUserId);
+            }
+            var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
+            paymentOrderPutResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
+            paymentOrderPutResponseBody.setBankStatus(paymentOrderStatus.getValue());
+            return paymentOrderPutResponseBody;
+        } catch (RuntimeException ex) {
+            //Mark the payment order as rejected due to submission error to core
+            log.error("Error while exchanging transaction: {}", ex);
+            var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
+            paymentOrderPutResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+            return paymentOrderPutResponseBody;
         }
     }
 
