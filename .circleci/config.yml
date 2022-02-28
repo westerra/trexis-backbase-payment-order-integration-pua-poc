@@ -9,6 +9,73 @@ orbs:
   aws-ecr: circleci/aws-ecr@7.0.0
 
 jobs:
+  veracode_scan:
+    docker:
+      - image: circleci/openjdk:11.0.2-jdk
+    parameters:
+      VERACODE_APP_NAME:
+        description: |
+          Pass VERACODE_APP_NAME in the builds
+        type: string
+
+      app_folder:
+        type: string
+
+      token:
+        description: |
+          Pass Github token
+        type: env_var_name
+
+    steps:
+      - attach_workspace:
+          at: .
+      - checkout
+      - gh/setup
+      - aws-cli/install
+
+      - run:
+          command: find . -name 'pom.xml' | sort | xargs cat > /tmp/maven_cache_seed
+          name: Generate Cache Checksum
+          working_directory: $CIRCLE_WORKING_DIRECTORY
+
+      - restore_cache:
+          key: 'maven-{{ checksum "/tmp/maven_cache_seed" }}'
+
+      - run:
+          command: |
+            mkdir -p ~/.m2
+            echo $SETTINGS_SECURITY_XML | base64 -d > ~/.m2/settings-security.xml
+            echo $SETTINGS_XML | base64 -d > ~/.m2/settings.xml
+            cat ~/.m2/settings.xml
+            cat ~/.m2/settings-security.xml
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            echo 'export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain westerra --domain-owner 181741612687 --query authorizationToken --output text)' >> $BASH_ENV
+
+      - run:
+          name: mvn clean install
+          command: |
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain westerra --domain-owner 181741612687 --query authorizationToken --output text)
+            mvn -s ~/.m2/settings.xml -f <<parameters.app_folder>>/pom.xml clean install
+            
+      - save_cache:
+          key: 'maven-{{ checksum "/tmp/maven_cache_seed" }}'
+          paths:
+            - ~/.m2 
+
+      - run:
+          name: Veracode Scan Status
+          command: |
+            curl -sSL  https://download.sourceclear.com/ci.sh | SCAN_DIR="./<<parameters.app_folder>>/" sh > stats.txt
+          no_output_timeout: 120m
+
+      - run:
+          name: Post Stats to GitHub PR
+          command: |
+            gh pr comment $CIRCLE_BRANCH --body "$(cat stats.txt)"
+
   create-pr-from-develop-to-main:
     docker:
       - image: 'cimg/base:stable'
@@ -311,3 +378,17 @@ workflows:
             branches:
               only:
                 - develop
+
+      - veracode_scan:
+          name: Veracode Scanning
+          VERACODE_APP_NAME: trexis-backbase-payment-order-integration
+          app_folder: payment-order-integration-service
+          token: GITHUB_TOKEN
+          context: 
+            - veracode
+            - bb-aws-dev
+          filters:
+            branches:
+              ignore:
+                - develop
+                - main
