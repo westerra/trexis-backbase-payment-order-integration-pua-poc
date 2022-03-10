@@ -23,8 +23,8 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <!-- Trexis -->
-        <trexis-finite-client.version>1.9.6-SNAPSHOT</trexis-finite-client.version>
-        <finite-utilities.version>1.9.6-SNAPSHOT</finite-utilities.version>
+        <trexis-finite-client.version>1.9.6</trexis-finite-client.version>
+        <finite-utilities.version>1.9.6</finite-utilities.version>
         <trexis-backbase-ingestion-api.version>1.0.3</trexis-backbase-ingestion-api.version>
 
         <!-- SPEC -->
