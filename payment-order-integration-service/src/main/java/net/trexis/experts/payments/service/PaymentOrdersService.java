@@ -100,7 +100,8 @@ public class PaymentOrdersService {
     private void triggerIngestion(String externalUserId){
         if(externalUserId!=null){
             try{
-                ingestionApi.getStartEntityTransactionsIngestion(externalUserId);
+                //We ingest the entire user, so that balances on accounts get updated, including notifications get triggerded
+                ingestionApi.getStartEntityIngestion(externalUserId, false, true);
             } catch (Exception ex){
                 log.error("Error triggering ingestion", ex);
             }
