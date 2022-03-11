@@ -34,10 +34,13 @@ public class PaymentOrdersMapper {
                 !StringUtils.isEmpty(paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation().getContent())) {
             exchangeTransaction.setDescription(paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation().getContent());
         }
-        var accountDebtor = new AccountDebtor();
-        accountDebtor.setId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
-        accountDebtor.setDebtorType("AccountDebtor");
 
+        //In Finite the debitor is the From
+        var accountDebtor = new AccountDebtor();
+        accountDebtor.setDebtorType("AccountDebtor");
+        accountDebtor.setId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
+
+        //In Finite the creditor is the To
         var accountCreditor = new AccountCreditor();
         accountCreditor.setCreditorType("AccountCreditor");
         accountCreditor.setId(paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getExternalArrangementId());

@@ -23,9 +23,9 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <!-- Trexis -->
-        <trexis-finite-client.version>1.9.6</trexis-finite-client.version>
+        <trexis-finite-client.version>1.9.7-SNAPSHOT</trexis-finite-client.version>
         <finite-utilities.version>1.9.6</finite-utilities.version>
-        <trexis-backbase-ingestion-api.version>1.0.3</trexis-backbase-ingestion-api.version>
+        <trexis-backbase-ingestion-api.version>1.0.3-SNAPSHOT</trexis-backbase-ingestion-api.version>
 
         <!-- SPEC -->
         <swagger-annotations.version>1.6.1</swagger-annotations.version>
