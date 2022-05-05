@@ -213,7 +213,8 @@ jobs:
         type: string
     steps:
       - checkout
-      - kubernetes/install-kubectl
+      - kubernetes/install-kubectl:
+          kubectl-version: v1.22.0
       - aws-cli/install
       - run:
           command: |
