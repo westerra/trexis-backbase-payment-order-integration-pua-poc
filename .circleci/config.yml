@@ -74,7 +74,8 @@ jobs:
       - run:
           name: Post Stats to GitHub PR
           command: |
-            gh pr comment $CIRCLE_BRANCH --body "$(cat stats.txt)"
+            gh issue status --json url --jq '.[][].url' | head -n 1 > issue.txt || echo "No Github issues..!"
+            gh issue edit $(cat issue.txt) -t "Veracode report" --add-label "veracode" --add-assignee "Marcus-treXis,vishnudxb" --body "$(cat stats.txt)" || gh issue create -t "Veracode report" --assignee Marcus-treXis,vishnudxb -l "veracode" --body "$(cat stats.txt)"
 
   create-pr-from-develop-to-main:
     docker:
@@ -390,6 +391,5 @@ workflows:
             - bb-aws-dev
           filters:
             branches:
-              ignore:
+              only:
                 - develop
-                - main
