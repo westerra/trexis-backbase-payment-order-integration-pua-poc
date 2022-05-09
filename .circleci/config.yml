@@ -280,6 +280,7 @@ workflows:
           context: bb-aws-dev
           requires:
             - build-and-publish-for-payment-order-integration-service-for-develop-branch
+            - Veracode-Scanning
           app_folder: payment-order-integration-service
           cluster-name: westerra-dev-eks
           namespace: westerra-dev
@@ -382,7 +383,7 @@ workflows:
                 - develop
 
       - veracode_scan:
-          name: Veracode Scanning
+          name: Veracode-Scanning
           VERACODE_APP_NAME: trexis-backbase-payment-order-integration
           app_folder: payment-order-integration-service
           token: GITHUB_TOKEN
