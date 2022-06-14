@@ -3,14 +3,13 @@ package net.trexis.experts.payments.mapper;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.Schedule;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class PaymentOrdersMapperTest {
     @Test
     public void calculateEndDateTimeFromRepeat_Success() {
@@ -32,7 +31,7 @@ public class PaymentOrdersMapperTest {
         paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
         paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now());
 
-        Assert.assertEquals(PaymentOrderStatus.PROCESSED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
+        assertEquals(PaymentOrderStatus.PROCESSED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
     }
 
     @Test
@@ -42,17 +41,19 @@ public class PaymentOrdersMapperTest {
         paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
         paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now().plusWeeks(1));
 
-        Assert.assertEquals(PaymentOrderStatus.ACCEPTED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
+        assertEquals(PaymentOrderStatus.ACCEPTED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
     }
 
     @Test
     public void paymentOrderStatusEnumShouldCreateEnumFromString() {
         var status = PaymentOrderStatus.fromValue("PROCESSED");
-        Assert.assertEquals(PaymentOrderStatus.PROCESSED, status);
+        assertEquals(PaymentOrderStatus.PROCESSED, status);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void paymentOrderStatusEnumShouldThrowOnInvalidFromValue() {
-        var badEnum = PaymentOrderStatus.fromValue("FAKE");
+        Assertions.assertThrows(IllegalArgumentException.class, () ->{
+            var badEnum = PaymentOrderStatus.fromValue("FAKE");
+        });
     }
 }
