@@ -1,8 +1,8 @@
 package net.trexis.experts.payments.service;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
+import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
-import net.trexis.experts.payments.configuration.PaymentConfiguration;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
@@ -19,12 +19,12 @@ public class PaymentOrdersService {
     public static final String XTRACE = "xtrace";
     private final ExchangeApi exchangeApi;
     private final IngestionApi ingestionApi;
-    private final PaymentConfiguration paymentConfiguration;
+    private final FiniteConfiguration finiteConfiguration;
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
         try {
             log.debug("BB Payment Request {}", paymentOrdersPostRequestBody);
-            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, paymentConfiguration);
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, finiteConfiguration);
             log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
 
             var exchangeTransactionResult =
@@ -55,7 +55,7 @@ public class PaymentOrdersService {
     public PaymentOrderPutResponseBody updatePaymentOrder(String exchangeId, PaymentOrderPutRequestBody putRequestBody, String externalUserId) {
         try {
             log.debug("BB Payment Request {}", putRequestBody);
-            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(putRequestBody, paymentConfiguration);
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(putRequestBody, finiteConfiguration);
             log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
 
             var exchangeTransactionResult =
@@ -101,7 +101,7 @@ public class PaymentOrdersService {
         if(externalUserId!=null){
             try{
                 //We ingest the entire user, so that balances on accounts get updated, including notifications get triggerded
-                ingestionApi.getStartEntityIngestion(externalUserId, false, true);
+                ingestionApi.getStartEntityIngestion(externalUserId, true);
             } catch (Exception ex){
                 log.error("Error triggering ingestion", ex);
             }

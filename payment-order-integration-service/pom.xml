@@ -12,7 +12,7 @@
 
     <groupId>net.trexis.experts</groupId>
     <artifactId>payment-order-integration-service</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
     <packaging>war</packaging>
     <name>Trexis :: Backbase :: Payment Order Integration Service</name>
 
@@ -23,9 +23,9 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <!-- Trexis -->
-        <trexis-finite-client.version>1.9.7-SNAPSHOT</trexis-finite-client.version>
-        <finite-utilities.version>1.9.6</finite-utilities.version>
-        <trexis-backbase-ingestion-api.version>1.0.3-SNAPSHOT</trexis-backbase-ingestion-api.version>
+        <trexis-finite-client.version>1.9.8_p1-00-SNAPSHOT</trexis-finite-client.version>
+        <finite-utilities.version>1.9.8_p1</finite-utilities.version>
+        <trexis-backbase-ingestion-api.version>1.0.4-SNAPSHOT</trexis-backbase-ingestion-api.version>
 
         <!-- SPEC -->
         <swagger-annotations.version>1.6.1</swagger-annotations.version>
@@ -40,6 +40,12 @@
         <boat-maven-plugin.version>0.14.4</boat-maven-plugin.version>
         <ignored-lint-rules>150,219,215,218,166,136,174,235,107,171,224,143,151,129,146,147,172,145,115,132,120,134,183,154,105,104,130,118,110,153,101,176,116,M009,H002,M010,H001,M008,S005,S006,S007,M011,M0012</ignored-lint-rules>
         <blade.version>4.20.0</blade.version>
+
+        <!-- Code coverage -->
+        <jacoco-maven.version>0.8.8</jacoco-maven.version>
+        <jacoco.ut.execution.data.file>${project.build.directory}/coverage-reports/jacoco.exec</jacoco.ut.execution.data.file>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco-ut/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+
     </properties>
 
     <dependencyManagement>
@@ -118,12 +124,6 @@
         <dependency>
             <groupId>com.backbase.buildingblocks</groupId>
             <artifactId>service-sdk-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <version>5.8.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -212,6 +212,67 @@
                             <apiPackage>com.backbase.dbs.arrangement.arrangement-manager.api.client.v2</apiPackage>
                             <modelPackage>com.backbase.dbs.arrangement.arrangement-manager.v2.model</modelPackage>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- CODE COVERAGE -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-maven.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/com/backbase/dbs/**/*</exclude>
+                        <exclude>**/net/trexis/experts/cursor/cursor_service/**/*</exclude>
+                        <exclude>**/net/trexis/experts/ingestion_service/**/*</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${jacoco.ut.execution.data.file}</destFile>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${jacoco.ut.execution.data.file}</dataFile>
+                            <rules>
+                                <rule>
+                                    <element>CLASS</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.00</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.00</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+
+                    <!-- attached to Maven test phase -->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

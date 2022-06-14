@@ -3,8 +3,8 @@ package net.trexis.experts.payments.mapper;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.finite.api.commons.Utilities.DateUtilities;
 import io.swagger.codegen.v3.service.exception.BadRequestException;
-import net.trexis.experts.payments.configuration.PaymentConfiguration;
 import lombok.extern.slf4j.Slf4j;
+import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.apache.commons.lang3.StringUtils;
 import com.finite.api.model.*;
@@ -22,7 +22,7 @@ public class PaymentOrdersMapper {
 
     public static final String CACHE_EXTERNAL_ID = "id";
 
-    public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, PaymentConfiguration paymentConfiguration) {
+    public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, FiniteConfiguration finiteConfiguration) {
         var exchangeTransaction = new ExchangeTransaction();
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
@@ -55,7 +55,8 @@ public class PaymentOrdersMapper {
             exchangeTransaction.setIsRecurring(Boolean.TRUE);
             schedule.setRepeatCount(paymentOrdersPostRequestBody.getSchedule().getRepeat());
             schedule.setStrategy(Schedule.StrategyEnum.NONE);
-            schedule.setFrequency(paymentConfiguration.getFiniteFrequency(paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString()));
+            String finitePaymentFrequency = finiteConfiguration.getFiniteFromBackbaseMapping(finiteConfiguration.getPaymentFrequencies(), paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString());
+            schedule.setFrequency(finitePaymentFrequency);
             schedule.setIsEveryTime(Boolean.TRUE);
             schedule.setDayOn(paymentOrdersPostRequestBody.getSchedule().getOn().toString());
             schedule.setStartDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getStartDate().toString()));
