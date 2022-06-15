@@ -73,6 +73,11 @@ spec:
               secretKeyRef:
                 name: "{{ include "dbs-payment-order-integration-service.name" . }}"
                 key: "IDENTITY_USERNAME"
+          - name: MULESOFT_API_KEYS
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "MULESOFT_API_KEYS"
           - name: IDENTITY_PASSWORD
             valueFrom:
               secretKeyRef:
