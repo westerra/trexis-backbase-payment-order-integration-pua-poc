@@ -194,7 +194,9 @@ jobs:
           remote-docker-layer-caching: true
 
   deploy:
-    executor: aws-eks/python3
+    machine:
+      image: ubuntu-2004:202201-02
+    resource_class: large
     parameters:
       cluster-name:
         description: |
@@ -219,12 +221,102 @@ jobs:
       - aws-cli/install
       - run:
           command: |
-            curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
-            sudo apt-get install apt-transport-https --yes
-            echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-            sudo apt-get update
-            sudo apt-get install -y helm 
+            wget https://get.helm.sh/helm-v3.8.1-linux-amd64.tar.gz
+            tar -xvf helm-v3.8.1-linux-amd64.tar.gz
+            sudo mv linux-amd64/helm /usr/local/bin
+            helm version 
           name: Setup helm
+      - run:
+          name: Install OpenVPN
+          no_output_timeout: 30m
+          command: |
+            sudo apt update && sudo apt install -y apt-transport-https
+            sudo wget https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub
+            sudo apt-key add openvpn-repo-pkg-key.pub
+            sudo wget -O /etc/apt/sources.list.d/openvpn3.list https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-$(sed 's/UBUNTU_CODENAME=//;t;d' /etc/os-release).list
+            sudo apt update && sudo apt install -y openvpn3 openvpn-systemd-resolved 
+      - run:
+          name: Check IP before VPN connection
+          command: |
+            sudo systemctl enable openvpn3-autoload.service
+            sudo systemctl start openvpn3-autoload.service
+            ip a
+            echo "Public IP before VPN connection is $(curl checkip.amazonaws.com)"
+      - run:
+          name: VPN Setup
+          background: true
+          command: |
+            mkdir -m700 -p $HOME/.openvpn3/autoload
+            echo $CIRCLECI_VPN_CONFIG_FILE | base64 -d > $HOME/.openvpn3/autoload/client.conf
+            echo $CIRCLECI_VPN_AUTOLOAD | base64 -d > $HOME/.openvpn3/autoload/client.autoload
+            ET_phone_home=$(ss -Hnto state established '( sport = :ssh )' | head -n1 | awk '{ split($4, a, ":"); print a[1] }')
+            echo ET_phone_home: $ET_phone_home
+            
+            if [ -n "$ET_phone_home" ]; then
+              echo "route $ET_phone_home 255.255.255.255 net_gateway" >> /tmp/config.ovpn
+            fi
+            
+            echo "route 169.254.0.0 255.255.0.0 net_gateway" >> /tmp/config.ovpn
+            
+            for SYS_RES_DNS in $(systemd-resolve --status | grep 'DNS Servers'|awk '{print $3}')
+              do
+                echo "route $SYS_RES_DNS 255.255.0.0 net_gateway" >> /tmp/config.ovpn
+                echo SYS_RES_DNS: $SYS_RES_DNS
+            done
+            for IP in $(host runner.circleci.com | awk '{ print $4; }')
+              do 
+                echo "route $IP 255.255.255.255 net_gateway" >> /tmp/config.ovpn
+                echo IP Addr: $IP
+            done
+            sudo openvpn3-autoload --directory $HOME/.openvpn3/autoload
+            sudo openvpn3 sessions-list
+      - run:
+          name: Wait for the connection to be established and check
+          command: |
+            counter=1
+            until sudo openvpn3 sessions-list|grep "Client connected" || [ "$counter" -ge 5 ]; do
+              ((counter++))
+              echo "Attempting to connect to VPN server..."
+              sleep 1;
+            done
+            
+            if ( ! sudo openvpn3 sessions-list|grep "Client connected"); then
+              printf "\nUnable to establish connection within the allocated time ---> Giving up.\n"
+            else
+              printf "\nVPN connected\n"
+              printf "\nPublic IP is now %s\n" "$(curl -s https://checkip.amazonaws.com)"
+            fi
+      - run:
+          name: Check VPN IP Address
+          command: |
+            printf "\nPublic IP is now %s\n" "$(curl -s https://checkip.amazonaws.com)"
+      - run:
+          name: If not able to connect to VPN, update AWS k8s master api access using aws cli
+          command: |
+            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY 
+            aws sts get-caller-identity
+            export EXPECTED_IP=18.190.47.94
+            export CURRENT_IP=$(curl -s https://checkip.amazonaws.com)
+            counter=1
+            until aws eks describe-cluster --region $AWS_DEFAULT_REGION --name << parameters.cluster-name >> | jq -r '.cluster.status' || [ "$counter" -ge 5 ]; do
+              ((counter++))
+              echo "Checking for any cluster updates running..."
+              sleep 10;
+            done
+            
+            if ( ! aws eks describe-cluster --region $AWS_DEFAULT_REGION --name << parameters.cluster-name >> | jq -r '.cluster.status'); then
+              echo "No cluster update going on, proceeding with ip updates..."
+            else
+              printf "\nProceed with VPN connection setup...\n"
+            fi
+            if [ "$CURRENT_IP" != "$EXPECTED_IP" ];
+            then
+              aws eks update-cluster-config --region $AWS_DEFAULT_REGION --name << parameters.cluster-name >> --resources-vpc-config endpointPublicAccess=true,endpointPrivateAccess=true,publicAccessCidrs=$CURRENT_IP/32,34.237.0.220/32,18.190.47.94/32
+              sleep 10
+            else
+              echo "Nothing to update in AWS k8s master api..."
+            fi          
       - run:
           command: |
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
@@ -238,6 +330,8 @@ jobs:
           command: |
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            aws sts get-caller-identity
+            aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name << parameters.cluster-name >>            
             <<parameters.secrets>> values.yaml-tmpl > values.yaml
             helm upgrade -f values.yaml << parameters.app_folder >> -n << parameters.namespace >> . || helm install -f values.yaml << parameters.app_folder >> -n << parameters.namespace >> .
             kubectl rollout status deployment/dbs-<< parameters.app_folder >> -n << parameters.namespace >>
