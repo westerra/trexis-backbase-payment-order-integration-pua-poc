@@ -1,6 +1,8 @@
 package net.trexis.experts.payments.service;
 
+import com.backbase.buildingblocks.presentation.errors.Error;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
+import com.finite.api.model.ExchangeTransactionResult;
 import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
@@ -11,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import com.finite.api.ExchangeApi;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -30,24 +34,29 @@ public class PaymentOrdersService {
             var exchangeTransactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
             log.debug("Payment with result {}", exchangeTransactionResult.toString());
-            if(exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
-                throw new PaymentOrdersServiceException().withMessage("Unable to retrieve exchange transaction id from result");
+            if (exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
+                throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult));
             }
+
             var paymentOrderStatus =
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody);
             //Send refresh request on exchange.
-            if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
+            if (paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
                 this.triggerIngestion(externalUserId);
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
             paymentOrdersPostResponseBody.setBankStatus(paymentOrderStatus.getValue());
+            paymentOrdersPostResponseBody.setReasonCode(exchangeTransactionResult.getStatus());
+            paymentOrdersPostResponseBody.setReasonText(exchangeTransactionResult.getReason());
             return paymentOrdersPostResponseBody;
+
         } catch (RuntimeException ex) {
-            //Mark the payment order as rejected due to submission error to core
+            //Mark the payment order as rejected due to unknown submission error to core
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+            paymentOrdersPostResponseBody.setReasonText(ex.getMessage());
             return paymentOrdersPostResponseBody;
         }
     }
@@ -62,7 +71,7 @@ public class PaymentOrdersService {
                     exchangeApi.updateExchangeTransaction(exchangeId, exchangeTransaction, null, null);
             log.debug("Payment with result {}", exchangeTransactionResult.toString());
             if(exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
-                throw new PaymentOrdersServiceException().withMessage("Unable to retrieve exchange transaction id from result");
+                throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult));
             }
             var paymentOrderStatus =
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody);
@@ -73,12 +82,16 @@ public class PaymentOrdersService {
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
             paymentOrderPutResponseBody.setBankStatus(paymentOrderStatus.getValue());
+            paymentOrderPutResponseBody.setReasonCode(exchangeTransactionResult.getStatus());
+            paymentOrderPutResponseBody.setReasonText(exchangeTransactionResult.getReason());
             return paymentOrderPutResponseBody;
+
         } catch (RuntimeException ex) {
-            //Mark the payment order as rejected due to submission error to core
+            //Mark the payment order as rejected due to unknown submission error to core
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+            paymentOrderPutResponseBody.setReasonText(ex.getMessage());
             return paymentOrderPutResponseBody;
         }
     }
@@ -108,5 +121,17 @@ public class PaymentOrdersService {
         }
     }
 
+    private String getBBCompatibleReason(ExchangeTransactionResult exchangeTransactionResult){
+        String compatibleReason = "Unable to process payment order";
+        if (exchangeTransactionResult.getReason() != null && !exchangeTransactionResult.getReason().isEmpty()) {
+            compatibleReason = exchangeTransactionResult.getReason();
+            //ToDo:  Logged a defect at backbase that the reason is limited to 32 characters, and our reasons are longer.
+            if(compatibleReason.length()>32) {
+                log.warn("Original error message truncated, value before truncate -> " + compatibleReason);
+                compatibleReason = compatibleReason.substring(0, 28) + "..."; //Add ... to indicate it got truncated
+            }
+        }
+        return compatibleReason;
+    }
 }
 
