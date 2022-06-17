@@ -22,11 +22,6 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
-        <!-- Trexis -->
-        <trexis-finite-client.version>1.9.8_p1-00-SNAPSHOT</trexis-finite-client.version>
-        <finite-utilities.version>1.9.8_p1</finite-utilities.version>
-        <trexis-backbase-ingestion-api.version>1.0.4-SNAPSHOT</trexis-backbase-ingestion-api.version>
-
         <!-- SPEC -->
         <swagger-annotations.version>1.6.1</swagger-annotations.version>
         <jackson-databind-nullable.version>0.2.1</jackson-databind-nullable.version>
@@ -61,6 +56,13 @@
                 <groupId>com.backbase</groupId>
                 <artifactId>backbase-bom</artifactId>
                 <version>${dbs.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.trexis.experts</groupId>
+                <artifactId>experts-bom</artifactId>
+                <version>1.0.0.LTS-SNAPSHOT</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -99,17 +101,14 @@
         <dependency>
             <groupId>net.trexis.experts</groupId>
             <artifactId>finite-client</artifactId>
-            <version>${trexis-finite-client.version}</version>
         </dependency>
         <dependency>
             <groupId>com.finite.api</groupId>
             <artifactId>utilities</artifactId>
-            <version>${finite-utilities.version}</version>
         </dependency>
         <dependency>
             <groupId>net.trexis.experts</groupId>
             <artifactId>ingestion-api</artifactId>
-            <version>${trexis-backbase-ingestion-api.version}</version>
         </dependency>
 
         <!-- MISC -->
@@ -278,4 +277,17 @@
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>finiteapi-releases</id>
+            <name>libs-release</name>
+            <url>https://finiteapi.jfrog.io/artifactory/libs-release-local</url>
+        </repository>
+        <snapshotRepository>
+            <id>finiteapi-snapshots</id>
+            <name>libs-snapshots</name>
+            <url>https://finiteapi.jfrog.io/artifactory/libs-snapshots-local</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>

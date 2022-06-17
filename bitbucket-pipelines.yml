@@ -13,72 +13,50 @@ definitions:
     sonar: ~/.sonar/cache  # Caching SonarCloud artifacts will speed up your build
     custom-maven: /root/.m2/repository  # Caching the actual project for faster builds
   steps:
-    - step: &dependencies
-        name: Dependencies Install
+    - step: &install
+        name: Install
         caches:
-          #cache is useful to speed up a current step, it is not overwriten if it exist,so not useful in subsequent steps
-          # maven default to ~/.m2/repository, which is our /root/.m2/repository folder
-          - maven
-        script:
-          #Delete the cache from previous trexis builds, we always want the latest versions only
-          - rm -rf /root/.m2/repository/net/trexis
-
-          #Build all dependencies, without testing
-          - git clone git@bitbucket.org:trexis/trexis-commons.git
-          - mvn install -DskipTests --batch-mode --file trexis-commons/pom.xml -Dmaven.repo.local=/root/.m2/repository
-          - git clone git@bitbucket.org:trexis/trexis-finite-java-client.git
-          - mvn install -DskipTests --batch-mode --file trexis-finite-java-client/pom.xml -Dmaven.repo.local=/root/.m2/repository
-          - git clone git@bitbucket.org:trexis/trexis-backbase-cursor.git
-          - mvn install -DskipTests --batch-mode --file trexis-backbase-cursor/pom.xml -Dmaven.repo.local=/root/.m2/repository
-          - git clone git@bitbucket.org:trexis/trexis-backbase-ingestion.git
-          - mvn install -DskipTests --batch-mode --file trexis-backbase-ingestion/pom.xml -Dmaven.repo.local=/root/.m2/repository
-
-          #Copy artifacts we will use to the artifacts dist location (it must be relative to $BITBUCKET_CLONE_DIR)
-          - mkdir –p $BITBUCKET_CLONE_DIR/dist
-          - cp -R /root/.m2/repository/net/trexis/** $BITBUCKET_CLONE_DIR/dist
-          - ls -lah $BITBUCKET_CLONE_DIR/dist
-        artifacts:
-          #We store the trexis output in artifacts so it become available to the next step (another solution is making it one step)
-          #Bitbucket pipelines does not support cache invalidate
-          - dist/**
-
-    - step: &project
-        name: Project install & sonar
-        caches:
-          - custom-maven
           - sonar
+          - custom-maven
         script:
-          #Delete the cache from previous trexis builds, we always want the latest versions only
-          - rm -rf /root/.m2/repository/net/trexis
-          #Copy dependencies created in previous step into maven repo
-          - cp -R $BITBUCKET_CLONE_DIR/dist/ /root/.m2/repository/net/trexis
-
           #Build project with tests
           - mvn install --batch-mode --file pom.xml -Dmaven.repo.local=/root/.m2/repository  -PcodeCoverage
-
           #Sonar Scan
           - mvn -B sonar:sonar -Dsonar.java.coveragePlugin=jacoco -Dsonar.organization=trexis
-
-        after-script:
-          # Collect checkstyle results, if any, and convert to Bitbucket Code Insights.
-          - pipe: atlassian/checkstyle-report:0.3.0
-          - BUILD_STATUS="successful"
-          - if [[ $BITBUCKET_EXIT_CODE -ne 0 ]]; then BUILD_STATUS="failed" ; fi
-          - pipe: atlassian/slack-notify:2.0.0
-            variables:
-              WEBHOOK_URL: $EXPERTS_SLACK_WEBHOOK_URL
-              MESSAGE: '[$BITBUCKET_REPO_FULL_NAME] build has exited with status $BUILD_STATUS. https://sonarcloud.io/dashboard?id=trexis_$BITBUCKET_REPO_SLUG&branch=$BITBUCKET_BRANCH'
+    - step: &deploy
+        name: Deploy
+        caches:
+          - sonar
+          - custom-maven
+        script:
+          #Build project with tests
+          - mvn deploy --batch-mode --file pom.xml -Dmaven.repo.local=/root/.m2/repository  -PcodeCoverage
+          #Sonar Scan
+          - mvn -B sonar:sonar -Dsonar.java.coveragePlugin=jacoco -Dsonar.organization=trexis
     - step: &security
         name: Security Scan
         script:
           # Run a security scan for sensitive data.
           # See more security tools at https://bitbucket.org/product/features/pipelines/integrations?&category=security
           - pipe: atlassian/git-secrets-scan:0.5.1
+    - step: &slack
+        name: Slack Notification
+        script:
+          - BUILD_STATUS="successful"
+          - if [[ $BITBUCKET_EXIT_CODE -ne 0 ]]; then BUILD_STATUS="failed" ; fi
+          - pipe: atlassian/slack-notify:2.0.0
+            variables:
+              WEBHOOK_URL: $EXPERTS_SLACK_WEBHOOK_URL
+              MESSAGE: '[$BITBUCKET_REPO_FULL_NAME] build has exited with status $BUILD_STATUS. https://sonarcloud.io/dashboard?id=trexis_$BITBUCKET_REPO_SLUG&branch=$BITBUCKET_BRANCH'
 
 pipelines:
   branches:
     master:
-      - step: *dependencies
       - parallel:
-          - step: *project
+          - step: *deploy
+          - step: *security
+      - step: *slack
+    feature/*:
+      - parallel:
+          - step: *install
           - step: *security
