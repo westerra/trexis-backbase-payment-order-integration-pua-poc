@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
+import net.trexis.experts.payments.utilities.TestUtilities;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -33,6 +34,8 @@ class PaymentOrdersServiceTest {
     private IngestionApi ingestionApi = mock(IngestionApi.class);
     private FiniteConfiguration finiteConfiguration = new FiniteConfiguration();
 
+    private TestUtilities testUtilities = new TestUtilities();
+
     @BeforeAll
     public static void setErrorLogging() {
         LoggingSystem.get(ClassLoader.getSystemClassLoader()).setLogLevel(Logger.ROOT_LOGGER_NAME, LogLevel.ERROR);
@@ -41,9 +44,9 @@ class PaymentOrdersServiceTest {
     @Test
     void postPaymentOrdersInternalTransferImmediateHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
-        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = getPaymentOrderPost("internal_transfer_immediate.yaml");
+        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.yaml");
 
-        ExchangeTransactionResult exchangeTransactionResult = getExchangeTransactionResult("true", "Well Done", "FakeId");
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
 
         when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 
@@ -55,9 +58,9 @@ class PaymentOrdersServiceTest {
     @Test
     void postPaymentOrdersInternalTransferImmediateUnHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
-        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = getPaymentOrderPost("internal_transfer_immediate.yaml");
+        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.yaml");
 
-        ExchangeTransactionResult exchangeTransactionResult = getExchangeTransactionResult("false", "Something went wrong with a long message in the response", null);
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("false", "Something went wrong with a long message in the response", null);
         when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, "mockExternalUserId");
@@ -74,9 +77,9 @@ class PaymentOrdersServiceTest {
         finiteConfiguration.setPaymentFrequencies(paymentFrequencies);
 
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
-        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = getPaymentOrderPost("internal_transfer_schedule_weekly.yaml");
+        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_schedule_weekly.yaml");
 
-        ExchangeTransactionResult exchangeTransactionResult = getExchangeTransactionResult("true", "Well Done", "FakeId");
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
 
         when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 
@@ -90,9 +93,9 @@ class PaymentOrdersServiceTest {
     @Test
     void updatePaymentOrderHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
-        PaymentOrderPutRequestBody paymentOrderPutRequestBody = getPaymentOrderPut("internal_transfer_immediate.yaml");
+        PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.yaml");
 
-        ExchangeTransactionResult exchangeTransactionResult = getExchangeTransactionResult("true", "Well Done", "FakeId");
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
         when(exchangeApi.updateExchangeTransaction(anyString(), any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
@@ -103,9 +106,9 @@ class PaymentOrdersServiceTest {
     @Test
     void updatePaymentOrderUnHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
-        PaymentOrderPutRequestBody paymentOrderPutRequestBody = getPaymentOrderPut("internal_transfer_immediate.yaml");
+        PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.yaml");
 
-        ExchangeTransactionResult exchangeTransactionResult = getExchangeTransactionResult("false", "Something went wrong with a long message in the response", null);
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("false", "Something went wrong with a long message in the response", null);
         when(exchangeApi.updateExchangeTransaction(anyString(), any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
@@ -117,37 +120,11 @@ class PaymentOrdersServiceTest {
     void cancelPaymentOrderHappyPath() {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
 
-        ExchangeTransactionResult exchangeTransactionResult = getExchangeTransactionResult("true", "Well Done", "FakeId");
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
         when(exchangeApi.deleteExchangeTransaction(anyString(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 
         CancelResponse cancelResponse = paymentOrdersService.cancelPaymentOrder("fakeId");
         assertEquals(cancelResponse.getAccepted(), true);
-    }
-
-
-    private ExchangeTransactionResult getExchangeTransactionResult(String status, String reasonMessage, String transactionId){
-        ExchangeTransactionResult exchangeTransactionResult = new ExchangeTransactionResult();
-        exchangeTransactionResult.setExchangeTransactionId(transactionId);
-        exchangeTransactionResult.setStatus(status);
-        exchangeTransactionResult.setReason(reasonMessage);
-        return  exchangeTransactionResult;
-    }
-
-    private PaymentOrdersPostRequestBody getPaymentOrderPost(String fileName) throws IOException {
-        try (Reader reader = new InputStreamReader(this.getClass()
-                .getResourceAsStream("/" + fileName))) {
-            return new Gson().fromJson(reader, PaymentOrdersPostRequestBody.class);
-        } catch (IOException e) {
-            throw e;
-        }
-    }
-    private PaymentOrderPutRequestBody getPaymentOrderPut(String fileName) throws IOException {
-        try (Reader reader = new InputStreamReader(this.getClass()
-                .getResourceAsStream("/" + fileName))) {
-            return new Gson().fromJson(reader, PaymentOrderPutRequestBody.class);
-        } catch (IOException e) {
-            throw e;
-        }
     }
 
 }
