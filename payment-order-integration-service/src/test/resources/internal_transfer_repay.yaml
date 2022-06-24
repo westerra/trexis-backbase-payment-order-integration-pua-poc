@@ -1,0 +1,49 @@
+{
+  "id": "08618bd5-f075-435b-8aeb-fcb3f1ba1804",
+  "originator": {
+    "role": "DEBTOR",
+    "name": "REGULAR SAVINGS",
+    "postalAddress": {
+      "addressLine1": "1310 VARGAS RD",
+      "postCode": "78741-3566",
+      "town": "AUSTIN",
+      "country": "US"
+    }
+  },
+  "originatorAccount": {
+    "arrangementId": "85cc2c0b-2d43-41e2-ac6a-a200071bf5c6",
+    "externalArrangementId": "0900810271-S-0000",
+    "identification": {
+      "identification": "100000900810271",
+      "schemeName": "BBAN"
+    },
+    "name": "REGULAR SAVINGS"
+  },
+  "batchBooking": false,
+  "instructionPriority": "NORM",
+  "requestedExecutionDate": {
+    "year": 2022,
+    "month": 6,
+    "day": 23
+  },
+  "paymentMode": "SINGLE",
+  "paymentType": "INTERNAL_TRANSFER",
+  "transferTransactionInformation": {
+    "instructedAmount": {
+      "amount": "1742.65",
+      "currencyCode": "USD"
+    },
+    "counterparty": {
+      "role": "CREDITOR",
+      "name": "VISA PLATINUM GREAT RATE"
+    },
+    "counterpartyAccount": {
+      "arrangementId": "fa4f8dff-85e1-45e9-9b1c-863b590b8112",
+      "externalArrangementId": "0900810271-L-0050",
+      "identification": {
+        "identification": "200500900810271",
+        "schemeName": "BBAN"
+      }
+    }
+  }
+}

@@ -20,7 +20,7 @@ definitions:
           - custom-maven
         script:
           #Build project with tests
-          - mvn install --batch-mode --file pom.xml -Dmaven.repo.local=/root/.m2/repository  -PcodeCoverage
+          - mvn install --batch-mode --file pom.xml -Dmaven.repo.local=/root/.m2/repository
           #Sonar Scan
           - mvn -B sonar:sonar -Dsonar.java.coveragePlugin=jacoco -Dsonar.organization=trexis
     - step: &deploy

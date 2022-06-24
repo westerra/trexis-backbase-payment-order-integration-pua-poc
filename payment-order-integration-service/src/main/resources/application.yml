@@ -54,4 +54,4 @@ finite:
 
 logging:
   level:
-    net.trexis.experts: INFO
+    net.trexis.experts: WARN

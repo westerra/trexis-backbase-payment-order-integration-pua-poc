@@ -1,0 +1,48 @@
+{
+  "id": "45ebbcd8-8527-4bc9-ab1d-847bad181060",
+  "originator": {
+    "role": "DEBTOR",
+    "name": "FREE CHECKING",
+    "postalAddress": {
+      "addressLine1": "1310 VARGAS RD",
+      "postCode": "78741-3566",
+      "town": "AUSTIN",
+      "country": "US"
+    }
+  },
+  "originatorAccount": {
+    "arrangementId": "11dd9d5b-4159-4710-9b23-b35bf2c87f48",
+    "externalArrangementId": "0900810271-S-0080",
+    "identification": {
+      "identification": "100800900810271",
+      "schemeName": "BBAN"
+    }
+  },
+  "batchBooking": false,
+  "instructionPriority": "NORM",
+  "requestedExecutionDate": {
+    "year": 2022,
+    "month": 6,
+    "day": 23
+  },
+  "paymentMode": "SINGLE",
+  "paymentType": "INTERNAL_TRANSFER",
+  "transferTransactionInformation": {
+    "instructedAmount": {
+      "amount": "7.00",
+      "currencyCode": "USD"
+    },
+    "counterparty": {
+      "role": "CREDITOR",
+      "name": "REGULAR SAVINGS"
+    },
+    "counterpartyAccount": {
+      "arrangementId": "85cc2c0b-2d43-41e2-ac6a-a200071bf5c6",
+      "externalArrangementId": "0900810271-S-0000",
+      "identification": {
+        "identification": "100000900810271",
+        "schemeName": "BBAN"
+      }
+    }
+  }
+}

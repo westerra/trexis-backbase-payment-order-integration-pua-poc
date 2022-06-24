@@ -118,6 +118,11 @@
             <version>${lombok.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
 
         <!-- TEST -->
         <dependency>
@@ -225,6 +230,7 @@
                         <exclude>**/com/backbase/dbs/**/*</exclude>
                         <exclude>**/net/trexis/experts/cursor/cursor_service/**/*</exclude>
                         <exclude>**/net/trexis/experts/ingestion_service/**/*</exclude>
+                        <exclude>**/net/trexis/experts/payments/configuration/**/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

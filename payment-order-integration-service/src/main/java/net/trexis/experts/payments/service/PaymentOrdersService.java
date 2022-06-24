@@ -1,6 +1,5 @@
 package net.trexis.experts.payments.service;
 
-import com.backbase.buildingblocks.presentation.errors.Error;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import com.finite.api.model.ExchangeTransactionResult;
 import net.trexis.experts.finite.FiniteConfiguration;
@@ -13,8 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import com.finite.api.ExchangeApi;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -126,9 +123,9 @@ public class PaymentOrdersService {
         if (exchangeTransactionResult.getReason() != null && !exchangeTransactionResult.getReason().isEmpty()) {
             compatibleReason = exchangeTransactionResult.getReason();
             //ToDo:  Logged a defect at backbase that the reason is limited to 32 characters, and our reasons are longer.
-            if(compatibleReason.length()>32) {
+            if(compatibleReason.length()>35) {
                 log.warn("Original error message truncated, value before truncate -> " + compatibleReason);
-                compatibleReason = compatibleReason.substring(0, 28) + "..."; //Add ... to indicate it got truncated
+                compatibleReason = compatibleReason.substring(0, 32) + "..."; //Add ... to indicate it got truncated
             }
         }
         return compatibleReason;
