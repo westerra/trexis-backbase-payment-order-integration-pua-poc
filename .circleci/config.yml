@@ -238,8 +238,6 @@ jobs:
       - run:
           name: Check IP before VPN connection
           command: |
-            sudo systemctl enable openvpn3-autoload.service
-            sudo systemctl start openvpn3-autoload.service
             ip a
             echo "Public IP before VPN connection is $(curl checkip.amazonaws.com)"
       - run:
@@ -247,25 +245,25 @@ jobs:
           background: true
           command: |
             mkdir -m700 -p $HOME/.openvpn3/autoload
-            echo $CIRCLECI_VPN_CONFIG_FILE | base64 -d > $HOME/.openvpn3/autoload/client.conf
+            echo $CIRCLECI_VPN_CONFIG_FILE | base64 -d > $HOME/.openvpn3/autoload/client.ovpn
             echo $CIRCLECI_VPN_AUTOLOAD | base64 -d > $HOME/.openvpn3/autoload/client.autoload
             ET_phone_home=$(ss -Hnto state established '( sport = :ssh )' | head -n1 | awk '{ split($4, a, ":"); print a[1] }')
             echo ET_phone_home: $ET_phone_home
             
             if [ -n "$ET_phone_home" ]; then
-              echo "route $ET_phone_home 255.255.255.255 net_gateway" >> /tmp/config.ovpn
+              echo "route $ET_phone_home 255.255.255.255 net_gateway" >> $HOME/.openvpn3/autoload/client.ovpn
             fi
             
-            echo "route 169.254.0.0 255.255.0.0 net_gateway" >> /tmp/config.ovpn
+            echo "route 169.254.0.0 255.255.0.0 net_gateway" >> $HOME/.openvpn3/autoload/client.ovpn
             
             for SYS_RES_DNS in $(systemd-resolve --status | grep 'DNS Servers'|awk '{print $3}')
               do
-                echo "route $SYS_RES_DNS 255.255.0.0 net_gateway" >> /tmp/config.ovpn
+                echo "route $SYS_RES_DNS 255.255.0.0 net_gateway" >> $HOME/.openvpn3/autoload/client.ovpn
                 echo SYS_RES_DNS: $SYS_RES_DNS
             done
             for IP in $(host runner.circleci.com | awk '{ print $4; }')
               do 
-                echo "route $IP 255.255.255.255 net_gateway" >> /tmp/config.ovpn
+                echo "route $IP 255.255.255.255 net_gateway" >> $HOME/.openvpn3/autoload/client.ovpn
                 echo IP Addr: $IP
             done
             sudo openvpn3-autoload --directory $HOME/.openvpn3/autoload
