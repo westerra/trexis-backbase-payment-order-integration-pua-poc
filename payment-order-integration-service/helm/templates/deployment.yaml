@@ -103,6 +103,11 @@ spec:
               secretKeyRef:
                 name: "{{ include "dbs-payment-order-integration-service.name" . }}"
                 key: "AMQP"
+          - name: BB_CLIENT_SECRET_ID
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "dbs-payment-order-integration-service.name" . }}"
+                key: "BB_CLIENT_SECRET_ID"
           - name: JAVA_TOOL_OPTIONS
             valueFrom:
               secretKeyRef:
