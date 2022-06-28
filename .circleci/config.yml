@@ -341,7 +341,9 @@ workflows:
     jobs:
       - build-and-publish:
           name: build-and-publish-for-payment-order-integration-service-for-develop-branch
-          context: bb-aws-dev
+          context: 
+            - bb-aws-dev
+            - bb-aws-dev-2
           app_folder: payment-order-integration-service
           path: ./payment-order-integration-service/docker
           repo: dbs-payment-order-integration-service
@@ -355,7 +357,9 @@ workflows:
 
       - build-and-publish:
           name: build-and-publish-for-payment-order-integration-service-for-main-branch
-          context: bb-aws-uat
+          context: 
+            - bb-aws-uat
+            - bb-aws-uat-2
           app_folder: payment-order-integration-service
           path: ./payment-order-integration-service/docker
           repo: dbs-payment-order-integration-service
@@ -369,14 +373,16 @@ workflows:
 
       - deploy:
           name: deploy-payment-order-integration-service-dev
-          context: bb-aws-dev
+          context: 
+            - bb-aws-dev
+            - bb-aws-dev-2
           requires:
             - build-and-publish-for-payment-order-integration-service-for-develop-branch
             - Veracode-Scanning
           app_folder: payment-order-integration-service
           cluster-name: westerra-dev-eks
           namespace: westerra-dev
-          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@' -e 's@$MULESOFT_API_KEYS@'"$MULESOFT_API_KEYS"'@'
+          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@' -e 's@$MULESOFT_API_KEYS@'"$MULESOFT_API_KEYS"'@' -e 's@$BB_CLIENT_SECRET_ID@'"$BB_CLIENT_SECRET_ID"'@'
           env: dev
           filters:
             branches:
@@ -395,13 +401,15 @@ workflows:
 
       - deploy:
           name: deploy-payment-order-integration-service-sit
-          context: bb-aws-sit
+          context: 
+            - bb-aws-sit
+            - bb-aws-sit-2
           requires:
             - request-to-deploy-in-sit
           app_folder: payment-order-integration-service
           cluster-name: westerra-dev-eks
           namespace: westerra-sit
-          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@' -e 's@$MULESOFT_API_KEYS@'"$MULESOFT_API_KEYS"'@'
+          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@' -e 's@$MULESOFT_API_KEYS@'"$MULESOFT_API_KEYS"'@' -e 's@$BB_CLIENT_SECRET_ID@'"$BB_CLIENT_SECRET_ID"'@'
           env: sit
           filters:
             branches:
@@ -419,13 +427,15 @@ workflows:
 
       - deploy:
           name: deploy-payment-order-integration-service-uat
-          context: bb-aws-uat
+          context: 
+            - bb-aws-uat
+            - bb-aws-uat-2
           requires:
             - request-to-deploy-in-uat
           app_folder: payment-order-integration-service
           cluster-name: westerra-uat-eks
           namespace: westerra-uat
-          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@' -e 's@$MULESOFT_API_KEYS@'"$MULESOFT_API_KEYS"'@'
+          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@' -e 's@$MULESOFT_API_KEYS@'"$MULESOFT_API_KEYS"'@' -e 's@$BB_CLIENT_SECRET_ID@'"$BB_CLIENT_SECRET_ID"'@'
           env: uat
           filters:
             branches:
@@ -443,13 +453,15 @@ workflows:
 
       - deploy:
           name: deploy-payment-order-integration-service-prod
-          context: bb-aws-prod
+          context: 
+            - bb-aws-prod
+            - bb-aws-prod-2
           requires:
             - request-to-deploy-in-prod
           app_folder: payment-order-integration-service
           cluster-name: westerra-prod-eks
           namespace: westerra-prod
-          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@' -e 's@$MULESOFT_API_KEYS@'"$MULESOFT_API_KEYS"'@'
+          secrets: sed -e 's@$TAG@'"$ENV-${CIRCLE_SHA1:0:7}"'@' -e 's@$NAMESPACE@'"$NAMESPACE"'@'  -e 's@$AMQU@'"$AMQU"'@' -e 's@$AMQP@'"$AMQP"'@'  -e 's@$JAVA_TOOL_OPTIONS@'"$JAVA_TOOL_OPTIONS"'@'  -e 's@$SIG_SECRET_KEY@'"$SIG_SECRET_KEY"'@'  -e 's@$LOADER_PATH@'"$LOADER_PATH"'@'  -e 's@$AWS_DEFAULT_REGION@'"$AWS_DEFAULT_REGION"'@'  -e 's@$EXTERNAL_SIG_SECRET_KEY@'"$EXTERNAL_SIG_SECRET_KEY"'@'  -e 's@$EXTERNAL_ENC_SECRET_KEY@'"$EXTERNAL_ENC_SECRET_KEY"'@'  -e 's@$USERCTX_KEY@'"$USERCTX_KEY"'@' -e 's@$RDSURL@'"$RDSURL"'@' -e 's@$DBU@'"$DBU"'@' -e 's@$DBP@'"$DBP"'@' -e 's@$IDENTITY_USERNAME@'"$IDENTITY_USERNAME"'@' -e 's@$IDENTITY_PASSWORD@'"$IDENTITY_PASSWORD"'@' -e 's@$MULESOFT_API_KEYS@'"$MULESOFT_API_KEYS"'@' -e 's@$BB_CLIENT_SECRET_ID@'"$BB_CLIENT_SECRET_ID"'@'
           env: prod
           filters:
             branches:
