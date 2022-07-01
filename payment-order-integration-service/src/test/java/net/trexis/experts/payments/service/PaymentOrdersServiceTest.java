@@ -110,8 +110,8 @@ class PaymentOrdersServiceTest {
         paymentOrdersPostRequestBody.setPaymentMode(PaymentModeEnum.RECURRING);
 
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, "mockExternalUserId");
-        assertEquals(paymentOrdersPostResponseBody.getBankStatus(), PaymentOrderStatus.REJECTED.getValue());
-        assertEquals(paymentOrdersPostResponseBody.getReasonText(), rejectionMessage);
+        assertEquals(PaymentOrderStatus.REJECTED.getValue(), paymentOrdersPostResponseBody.getBankStatus());
+        assertEquals(rejectionMessage, paymentOrdersPostResponseBody.getReasonText(), rejectionMessage);
     }
 
     @Test
