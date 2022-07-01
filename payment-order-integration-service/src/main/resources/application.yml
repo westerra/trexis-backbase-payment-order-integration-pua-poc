@@ -27,7 +27,7 @@ management:
       enabled: false
 
 rejectRecurringStartingToday:
-  enabled: false
+  enabled: true
   message: The start date cannot be today's date. Please choose a future date.
 
 finite:
