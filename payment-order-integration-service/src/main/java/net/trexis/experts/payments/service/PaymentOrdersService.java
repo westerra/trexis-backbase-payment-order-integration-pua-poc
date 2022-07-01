@@ -3,6 +3,8 @@ package net.trexis.experts.payments.service;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import com.finite.api.model.ExchangeTransactionResult;
 import net.trexis.experts.finite.FiniteConfiguration;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
+import java.time.LocalDate;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
@@ -10,6 +12,7 @@ import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.finite.api.ExchangeApi;
 
@@ -22,9 +25,23 @@ public class PaymentOrdersService {
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
 
+    @Value("${rejectRecurringStartingToday.enabled:false}")
+    private boolean rejectRecurringStartingTodayEnabled;
+    @Value("${rejectRecurringStartingToday.message}")
+    private String rejectRecurringStartingTodayMessage;
+
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
+        log.debug("BB Payment Request {}", paymentOrdersPostRequestBody);
+
+        if (rejectRecurringStartingTodayEnabled &&
+                paymentOrdersPostRequestBody.getPaymentMode() == PaymentModeEnum.RECURRING &&
+                LocalDate.now().isEqual(paymentOrdersPostRequestBody.getRequestedExecutionDate())) {
+            return new PaymentOrdersPostResponseBody()
+                    .bankStatus(PaymentOrderStatus.REJECTED.getValue())
+                    .reasonText(rejectRecurringStartingTodayMessage);
+        }
+
         try {
-            log.debug("BB Payment Request {}", paymentOrdersPostRequestBody);
             var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, finiteConfiguration);
             log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
 

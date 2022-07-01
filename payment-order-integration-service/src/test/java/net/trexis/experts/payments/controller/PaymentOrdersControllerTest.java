@@ -1,7 +1,6 @@
 package net.trexis.experts.payments.controller;
 
 import com.backbase.buildingblocks.backend.security.auth.config.SecurityContextUtil;
-import com.backbase.buildingblocks.jwt.internal.token.InternalJwt;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.service.PaymentOrdersService;
@@ -11,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,7 +48,7 @@ class PaymentOrdersControllerTest {
         paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.ACCEPTED.getValue());
         when(paymentOrdersService.postPaymentOrders(any(), anyString())).thenReturn(paymentOrdersPostResponseBody);
 
-        PaymentOrdersPostRequestBody paymentOrderPost = testUtilities.getPaymentOrderPost("internal_transfer_immediate.yaml");
+        PaymentOrdersPostRequestBody paymentOrderPost = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
         ResponseEntity<PaymentOrdersPostResponseBody> responseEntity = paymentOrdersController.postPaymentOrders(paymentOrderPost);
 
         assertEquals(responseEntity.getStatusCode(), HttpStatus.OK);
@@ -66,7 +64,7 @@ class PaymentOrdersControllerTest {
         paymentOrderPutRequestBody.setBankStatus(PaymentOrderStatus.ACCEPTED.getValue());
         when(paymentOrdersService.updatePaymentOrder(anyString(), any(), anyString())).thenReturn(paymentOrderPutRequestBody);
 
-        PaymentOrderPutRequestBody paymentOrderPut = testUtilities.getPaymentOrderPut("internal_transfer_immediate.yaml");
+        PaymentOrderPutRequestBody paymentOrderPut = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
         ResponseEntity<PaymentOrderPutResponseBody> responseEntity = paymentOrdersController.putPaymentOrder("FakeId", paymentOrderPut);
 
         assertEquals(responseEntity.getStatusCode(), HttpStatus.OK);
