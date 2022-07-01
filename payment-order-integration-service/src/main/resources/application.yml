@@ -26,12 +26,14 @@ management:
     jms:
       enabled: false
 
+rejectRecurringStartingToday:
+  enabled: false
+  message: The start date cannot be today's date. Please choose a future date.
+
 finite:
   hosturl: http://localhost:9090
   apikey: demo-api-key-do-not-use-in-production
-
-payment:
-  frequencies:
+  paymentFrequencies:
     -
       backbase: ONCE
       finite: SINGLE_PAY
@@ -56,4 +58,4 @@ payment:
 
 logging:
   level:
-    net.trexis.experts: INFO
+    net.trexis.experts: WARN

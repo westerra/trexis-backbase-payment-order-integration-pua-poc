@@ -1,0 +1,47 @@
+{
+	"id": "69f9bd30-b607-4b51-ab0e-add1ba9d2f2a",
+	"originator": {
+		"role": "DEBTOR",
+		"name": "2016 CHEVROLET G2500 VAN",
+		"postalAddress": {
+			"addressLine1": "1310 VARGAS RD",
+			"postCode": "78741-3566",
+			"town": "AUSTIN",
+			"country": "US"
+		}
+	},
+	"originatorAccount": {
+		"arrangementId": "c11c6e6c-2f89-4e9e-80a8-9b696bc48371",
+		"externalArrangementId": "0900810271-L-0001",
+		"identification": {
+			"identification": "200010900810271",
+			"schemeName": "BBAN"
+		},
+		"name": "2016 CHEVROLET G2500 VAN"
+	},
+	"batchBooking": false,
+	"instructionPriority": "NORM",
+	"requestedExecutionDate": {
+		"year": 2022,
+		"month": 6,
+		"day": 23
+	},
+	"paymentMode": "SINGLE",
+	"paymentType": "INTRABANK_TRANSFER",
+	"transferTransactionInformation": {
+		"instructedAmount": {
+			"amount": "5.00",
+			"currencyCode": "USD"
+		},
+		"counterparty": {
+			"role": "CREDITOR",
+			"name": "Other member"
+		},
+		"counterpartyAccount": {
+			"identification": {
+				"identification": "1234123412",
+				"schemeName": "BBAN"
+			}
+		}
+	}
+}
