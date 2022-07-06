@@ -2,6 +2,7 @@ package net.trexis.experts.payments.service;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CancelResponse;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrderPutRequestBody;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrderPutResponseBody;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostResponseBody;
@@ -166,6 +167,34 @@ class PaymentOrdersServiceTest {
         assertEquals(PaymentOrderStatus.REJECTED.getValue(), paymentOrdersPostResponseBody.getBankStatus());
         assertEquals(paymentOrdersPostResponseBody.getReasonText().length(), 35);
     }
+
+    @Test
+    void updatePaymentOrder_truncatesReasonCodeAbove4Characters() throws IOException {
+        // common setup
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
+
+        // TEST CASE: 7 character reasonCode - should truncate to 4
+        var reasonCode = "success";
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult(reasonCode, "Well Done", "FakeId");
+        when(exchangeApi.updateExchangeTransaction(anyString(), any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        PaymentOrderPutResponseBody paymentOrderPutResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
+        assertEquals(paymentOrderPutResponseBody.getReasonCode(), exchangeTransactionResult.getStatus());
+
+
+        assertEquals(4, paymentOrderPutResponseBody.getReasonCode().length());
+        assertEquals(reasonCode.substring(0, 4), paymentOrderPutResponseBody.getReasonCode());
+
+        // TEST CASE: 4 character reasonCode - should not truncate
+        reasonCode = "pass";
+        exchangeTransactionResult = testUtilities.getExchangeTransactionResult(reasonCode, "Well Done", "FakeId");
+        when(exchangeApi.updateExchangeTransaction(anyString(), any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        paymentOrderPutResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
+        assertEquals(paymentOrderPutResponseBody.getReasonCode(), exchangeTransactionResult.getStatus());
+    }
+
 
     @Test
     void cancelPaymentOrderHappyPath() {
