@@ -2,6 +2,7 @@ package net.trexis.experts.payments.service;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import com.finite.api.model.ExchangeTransactionResult;
+import java.util.Optional;
 import net.trexis.experts.finite.FiniteConfiguration;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
 import java.time.LocalDate;
@@ -61,7 +62,10 @@ public class PaymentOrdersService {
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
             paymentOrdersPostResponseBody.setBankStatus(paymentOrderStatus.getValue());
-            paymentOrdersPostResponseBody.setReasonCode(exchangeTransactionResult.getStatus());
+            // This field has a max of 4 characters
+            Optional.ofNullable(exchangeTransactionResult.getStatus())
+                    .map(this::maxLength4)
+                    .ifPresent(paymentOrdersPostResponseBody::reasonCode);
             paymentOrdersPostResponseBody.setReasonText(exchangeTransactionResult.getReason());
             return paymentOrdersPostResponseBody;
 
@@ -96,7 +100,10 @@ public class PaymentOrdersService {
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
             paymentOrderPutResponseBody.setBankStatus(paymentOrderStatus.getValue());
-            paymentOrderPutResponseBody.setReasonCode(exchangeTransactionResult.getStatus());
+            // This field has a max of 4 characters
+            Optional.ofNullable(exchangeTransactionResult.getStatus())
+                    .map(this::maxLength4)
+                    .ifPresent(paymentOrderPutResponseBody::reasonCode);
             paymentOrderPutResponseBody.setReasonText(exchangeTransactionResult.getReason());
             return paymentOrderPutResponseBody;
 
@@ -146,6 +153,15 @@ public class PaymentOrdersService {
             }
         }
         return compatibleReason;
+    }
+
+    private String maxLength4(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.length() > 4
+                ? input.substring(0, 4)
+                : input;
     }
 }
 
