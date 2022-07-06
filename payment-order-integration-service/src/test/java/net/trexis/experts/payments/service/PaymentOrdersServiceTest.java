@@ -180,8 +180,6 @@ class PaymentOrdersServiceTest {
         when(exchangeApi.updateExchangeTransaction(anyString(), any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 
         PaymentOrderPutResponseBody paymentOrderPutResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
-        assertEquals(paymentOrderPutResponseBody.getReasonCode(), exchangeTransactionResult.getStatus());
-
 
         assertEquals(4, paymentOrderPutResponseBody.getReasonCode().length());
         assertEquals(reasonCode.substring(0, 4), paymentOrderPutResponseBody.getReasonCode());
@@ -192,6 +190,7 @@ class PaymentOrdersServiceTest {
         when(exchangeApi.updateExchangeTransaction(anyString(), any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 
         paymentOrderPutResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
+
         assertEquals(paymentOrderPutResponseBody.getReasonCode(), exchangeTransactionResult.getStatus());
     }
 

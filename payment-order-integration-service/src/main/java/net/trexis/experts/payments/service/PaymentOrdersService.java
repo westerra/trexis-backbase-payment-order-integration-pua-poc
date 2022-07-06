@@ -64,10 +64,8 @@ public class PaymentOrdersService {
             paymentOrdersPostResponseBody.setBankStatus(paymentOrderStatus.getValue());
             // This field has a max of 4 characters
             Optional.ofNullable(exchangeTransactionResult.getStatus())
-                    .map(status -> status.length() > 4
-                            ? StringUtils.substring(exchangeTransactionResult.getStatus(), 0, 4)
-                            : status
-                    ).ifPresent(paymentOrdersPostResponseBody::reasonCode);
+                    .map(this::maxLength4)
+                    .ifPresent(paymentOrdersPostResponseBody::reasonCode);
             paymentOrdersPostResponseBody.setReasonText(exchangeTransactionResult.getReason());
             return paymentOrdersPostResponseBody;
 
@@ -104,10 +102,8 @@ public class PaymentOrdersService {
             paymentOrderPutResponseBody.setBankStatus(paymentOrderStatus.getValue());
             // This field has a max of 4 characters
             Optional.ofNullable(exchangeTransactionResult.getStatus())
-                    .map(status -> status.length() > 4
-                            ? StringUtils.substring(exchangeTransactionResult.getStatus(), 0, 4)
-                            : status
-                    ).ifPresent(paymentOrderPutResponseBody::reasonCode);
+                    .map(this::maxLength4)
+                    .ifPresent(paymentOrderPutResponseBody::reasonCode);
             paymentOrderPutResponseBody.setReasonText(exchangeTransactionResult.getReason());
             return paymentOrderPutResponseBody;
 
@@ -157,6 +153,15 @@ public class PaymentOrdersService {
             }
         }
         return compatibleReason;
+    }
+
+    private String maxLength4(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.length() > 4
+                ? input.substring(0, 4)
+                : input;
     }
 }
 
