@@ -2,6 +2,7 @@ package net.trexis.experts.payments.service;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import com.finite.api.model.ExchangeTransactionResult;
+import java.util.Optional;
 import net.trexis.experts.finite.FiniteConfiguration;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
 import java.time.LocalDate;
@@ -61,7 +62,12 @@ public class PaymentOrdersService {
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
             paymentOrdersPostResponseBody.setBankStatus(paymentOrderStatus.getValue());
-            paymentOrdersPostResponseBody.setReasonCode(exchangeTransactionResult.getStatus());
+            // This field has a max of 4 characters
+            Optional.ofNullable(exchangeTransactionResult.getStatus())
+                    .map(status -> status.length() > 4
+                            ? StringUtils.substring(exchangeTransactionResult.getStatus(), 0, 4)
+                            : status
+                    ).ifPresent(paymentOrdersPostResponseBody::reasonCode);
             paymentOrdersPostResponseBody.setReasonText(exchangeTransactionResult.getReason());
             return paymentOrdersPostResponseBody;
 
@@ -96,7 +102,12 @@ public class PaymentOrdersService {
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
             paymentOrderPutResponseBody.setBankStatus(paymentOrderStatus.getValue());
-            paymentOrderPutResponseBody.setReasonCode(exchangeTransactionResult.getStatus());
+            // This field has a max of 4 characters
+            Optional.ofNullable(exchangeTransactionResult.getStatus())
+                    .map(status -> status.length() > 4
+                            ? StringUtils.substring(exchangeTransactionResult.getStatus(), 0, 4)
+                            : status
+                    ).ifPresent(paymentOrderPutResponseBody::reasonCode);
             paymentOrderPutResponseBody.setReasonText(exchangeTransactionResult.getReason());
             return paymentOrderPutResponseBody;
 
