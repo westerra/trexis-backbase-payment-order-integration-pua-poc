@@ -115,6 +115,33 @@ class PaymentOrdersServiceTest {
     }
 
     @Test
+    void postPaymentOrdersInternalTransfer_truncatesReasonCodeAbove4Characters() throws IOException {
+        // common setup
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
+
+        // TEST CASE: 7 character reasonCode - should truncate to 4
+        var reasonCode = "success";
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult(reasonCode, "Well Done", "FakeId");
+        when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, "mockExternalUserId");
+
+        assertEquals(4, paymentOrdersPostResponseBody.getReasonCode().length());
+        assertEquals(reasonCode.substring(0, 4), paymentOrdersPostResponseBody.getReasonCode());
+
+        // TEST CASE: 4 character reasonCode - should not truncate
+        reasonCode = "pass";
+        exchangeTransactionResult = testUtilities.getExchangeTransactionResult(reasonCode, "Well Done", "FakeId");
+        when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        paymentOrdersPostResponseBody = paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, "mockExternalUserId");
+
+        assertEquals(reasonCode, paymentOrdersPostResponseBody.getReasonCode());
+    }
+
+
+    @Test
     void updatePaymentOrderHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
         PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
