@@ -22,6 +22,7 @@ import com.finite.api.ExchangeApi;
 @RequiredArgsConstructor
 public class PaymentOrdersService {
     public static final String XTRACE = "xtrace";
+    public static final String INTRABANK_TRANSFER = "INTRABANK_TRANSFER";
     private final ExchangeApi exchangeApi;
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
@@ -30,6 +31,16 @@ public class PaymentOrdersService {
     private boolean rejectRecurringStartingTodayEnabled;
     @Value("${rejectRecurringStartingToday.message}")
     private String rejectRecurringStartingTodayMessage;
+
+    @Value("${transferToContact.externalArrangementIdFormat:%s-S-00}")
+    private String externalArrangementIdFormat;
+    @Value("${transferToContact.leftPadAccountNumber:true}")
+    private boolean leftPadAccountNumber;
+    @Value("${transferToContact.leftPadLength:10}")
+    private int leftPadLength;
+    @Value("${transferToContact.leftPadChar:0}")
+    private String leftPadChar;
+
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
         log.debug("BB Payment Request {}", paymentOrdersPostRequestBody);
@@ -42,8 +53,22 @@ public class PaymentOrdersService {
                     .reasonText(rejectRecurringStartingTodayMessage);
         }
 
+        if (INTRABANK_TRANSFER.equals(paymentOrdersPostRequestBody.getPaymentType())) {
+            Optional.ofNullable(paymentOrdersPostRequestBody.getTransferTransactionInformation())
+                    .map(TransferTransactionInformation::getCounterpartyAccount)
+                    .map(CounterpartyAccount::getIdentification)
+                    .filter(it -> it.getSchemeName() == SchemeName.BBAN)
+                    .map(Identification::getIdentification)
+                    .map(accountNumber -> leftPadAccountNumber
+                            ? StringUtils.leftPad(accountNumber, leftPadLength, leftPadChar)
+                            : accountNumber)
+                    .map(accountNumber -> String.format(externalArrangementIdFormat, accountNumber))
+                    .ifPresent(externalArrangementId -> paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().externalArrangementId(externalArrangementId));
+        }
+
         try {
             var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, finiteConfiguration);
+
             log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
 
             var exchangeTransactionResult =
