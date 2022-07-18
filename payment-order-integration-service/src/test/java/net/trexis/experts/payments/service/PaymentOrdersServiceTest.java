@@ -7,6 +7,8 @@ import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPo
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostResponseBody;
 import com.finite.api.ExchangeApi;
+import com.finite.api.model.AccountCreditor;
+import com.finite.api.model.ExchangeTransaction;
 import com.finite.api.model.ExchangeTransactionResult;
 import java.time.LocalDate;
 import net.trexis.experts.finite.FiniteConfiguration;
@@ -15,6 +17,7 @@ import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.utilities.TestUtilities;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggingSystem;
@@ -27,6 +30,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PaymentOrdersServiceTest {
@@ -140,6 +145,37 @@ class PaymentOrdersServiceTest {
 
         assertEquals(reasonCode, paymentOrdersPostResponseBody.getReasonCode());
     }
+
+    @Test
+    void postPaymentOrders_IntrabankTransfer_ShouldMapToAccountNumber() throws IOException {
+        // setup
+        List<FiniteConfiguration.BackbaseFiniteMapping> paymentFrequencies = new ArrayList<>();
+        FiniteConfiguration.BackbaseFiniteMapping weeklyFrequency = new FiniteConfiguration.BackbaseFiniteMapping();
+        weeklyFrequency.setBackbase("WEEKLY");
+        weeklyFrequency.setFinite("WEEKLY");
+        paymentFrequencies.add(weeklyFrequency);
+        finiteConfiguration.setPaymentFrequencies(paymentFrequencies);
+
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("intrabank_transfer_recurring.json");
+
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("pass", "Well Done", "FakeId");
+        when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        ReflectionTestUtils.setField(paymentOrdersService, "externalArrangementIdFormat", "%s-S-00");
+        ReflectionTestUtils.setField(paymentOrdersService, "leftPadAccountNumber", true);
+        ReflectionTestUtils.setField(paymentOrdersService, "leftPadLength", 10);
+        ReflectionTestUtils.setField(paymentOrdersService, "leftPadChar", "0");
+
+        // test
+        paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, "mockExternalUserId");
+
+        // verify the call to finite had a body with the correct external arrangement id
+        ArgumentCaptor<ExchangeTransaction> exchangeTransactionCaptor = ArgumentCaptor.forClass(ExchangeTransaction.class);
+        verify(exchangeApi, times(1)).performExchangeTransaction(exchangeTransactionCaptor.capture(), any(), any());
+        assertEquals("0000917916-S-00", ((AccountCreditor) exchangeTransactionCaptor.getValue().getCreditor()).getId());
+    }
+
 
 
     @Test
