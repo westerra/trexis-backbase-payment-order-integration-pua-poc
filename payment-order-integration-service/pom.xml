@@ -12,7 +12,7 @@
 
     <groupId>net.trexis.experts</groupId>
     <artifactId>payment-order-integration-service</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.3-SNAPSHOT</version>
     <packaging>war</packaging>
     <name>Trexis :: Backbase :: Payment Order Integration Service</name>
 
@@ -107,7 +107,7 @@
             <artifactId>utilities</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.trexis.experts</groupId>
+            <groupId>net.trexis.experts.specs</groupId>
             <artifactId>ingestion-api</artifactId>
         </dependency>
 
