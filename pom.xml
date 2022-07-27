@@ -4,7 +4,7 @@
 
     <groupId>net.trexis.experts</groupId>
     <artifactId>backbase-payment-order-integration-parent</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.0.2022.06-SNAPSHOT</version>
     <name>treXis :: Backbase :: Payment Order Integration Parent</name>
     <packaging>pom</packaging>
 
@@ -12,7 +12,7 @@
         <sig.secret.key>JWTSecretKeyDontUseInProduction!</sig.secret.key>
         <user.context.key>JWTSecretKeyDontUseInProduction!</user.context.key>
         <messaging.password>password</messaging.password>
-        <blade.version>4.20.0</blade.version>
+        <blade.version>4.21.0</blade.version>
         <port>8054</port>
     </properties>
 
