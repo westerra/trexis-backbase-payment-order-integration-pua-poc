@@ -1,0 +1,19 @@
+{ 
+    "title": "Merge from master branch to upgrade/2022_06", 
+    "description": "Automated PR from master to upgrade/2022_06",
+    "source": { 
+        "branch": { 
+           "name": "master" 
+         }, 
+         "repository": { 
+           "full_name": "trexis/$BITBUCKET_REPO_SLUG"
+         } 
+    }, 
+    "destination": { 
+        "branch": { 
+            "name": "upgrade/2022_06" 
+         } 
+     }, 
+     "reviewers": [{"username": "hendriktredoux"}, {"username": "wcarswelltrexis"}, {"username": "bmcswee-trexis"}, {"username": "NoahMcClelland"}],
+     "close_source_branch": false 
+}
