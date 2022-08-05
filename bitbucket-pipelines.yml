@@ -48,6 +48,14 @@ definitions:
             variables:
               WEBHOOK_URL: $EXPERTS_SLACK_WEBHOOK_URL
               MESSAGE: '[$BITBUCKET_REPO_FULL_NAME] build has exited with status $BUILD_STATUS. https://sonarcloud.io/dashboard?id=trexis_$BITBUCKET_REPO_SLUG&branch=$BITBUCKET_BRANCH'
+    - step: &prtoupgrade
+        name: Automatic PR from master to upgrade/2022.06  
+        script:
+          - BUILD_STATUS="successful"
+          - if [[ $BITBUCKET_EXIT_CODE -ne 0 ]]; then BUILD_STATUS="failed" ; fi
+          - sed -e 's@$BITBUCKET_REPO_SLUG@'"$BITBUCKET_REPO_SLUG"'@' pr.json-tmpl > pr.json
+          - >- 
+            curl https://api.bitbucket.org/2.0/repositories/trexis/$BITBUCKET_REPO_SLUG/pullrequests -u trexis_support_admin:$SUPPORT_USER_PR_APP_PWD -X POST -H "Content-Type: application/json" -H "Accept: application/json" -d @pr.json
 
 pipelines:
   branches:
@@ -56,6 +64,7 @@ pipelines:
           - step: *deploy
           - step: *security
       - step: *slack
+      - step: *prtoupgrade
     feature/*:
       - parallel:
           - step: *install
