@@ -26,9 +26,6 @@ management:
     jms:
       enabled: false
 
-timeZone:
-  zoneId: America/Denver
-
 rejectRecurringStartingToday:
   enabled: true
   message: The start date cannot be today's date. Please choose a future date.
