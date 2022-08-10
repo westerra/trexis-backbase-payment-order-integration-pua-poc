@@ -13,6 +13,7 @@ import com.finite.api.model.ExchangeTransactionResult;
 import java.time.LocalDate;
 import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
+import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.utilities.TestUtilities;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,8 +24,10 @@ import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggingSystem;
 
 import java.io.IOException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,6 +44,7 @@ class PaymentOrdersServiceTest {
     private FiniteConfiguration finiteConfiguration = new FiniteConfiguration();
 
     private TestUtilities testUtilities = new TestUtilities();
+    private final String zoneId = "America/Denver";
 
     @BeforeAll
     public static void setErrorLogging() {
@@ -50,8 +54,10 @@ class PaymentOrdersServiceTest {
     @Test
     void postPaymentOrdersInternalTransferImmediateHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
-        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
 
+        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
+        ReflectionTestUtils.setField(PaymentOrdersMapper.class, "zoneId", zoneId);
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
 
         when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
@@ -105,6 +111,7 @@ class PaymentOrdersServiceTest {
         finiteConfiguration.setPaymentFrequencies(paymentFrequencies);
 
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
 
         String rejectionMessage = "The start date cannot be today's date. Please choose a future date.";
 
@@ -112,7 +119,7 @@ class PaymentOrdersServiceTest {
         ReflectionTestUtils.setField(paymentOrdersService, "rejectRecurringStartingTodayMessage", rejectionMessage);
 
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_schedule_weekly.json");
-        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now());
+        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now(ZoneId.of(zoneId)));
         paymentOrdersPostRequestBody.setPaymentMode(PaymentModeEnum.RECURRING);
 
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, "mockExternalUserId");
