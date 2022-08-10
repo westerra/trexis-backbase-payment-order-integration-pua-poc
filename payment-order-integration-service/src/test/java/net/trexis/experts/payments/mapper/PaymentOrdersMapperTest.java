@@ -7,13 +7,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PaymentOrdersMapperTest {
-    private final String zoneId = "America/Denver";
-
     @Test
     public void calculateEndDateTimeFromRepeat_Success() {
         java.time.LocalDate startDate = LocalDate.parse("2021-04-01");
@@ -32,9 +29,9 @@ public class PaymentOrdersMapperTest {
         var paymentOrdersPostRequestBody = new PaymentOrdersPostRequestBody();
 
         paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
-        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now(ZoneId.of(zoneId)));
+        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now());
 
-        assertEquals(PaymentOrderStatus.PROCESSED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody,zoneId));
+        assertEquals(PaymentOrderStatus.PROCESSED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
     }
 
     @Test
@@ -44,7 +41,7 @@ public class PaymentOrdersMapperTest {
         paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
         paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now().plusWeeks(1));
 
-        assertEquals(PaymentOrderStatus.ACCEPTED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody,zoneId));
+        assertEquals(PaymentOrderStatus.ACCEPTED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
     }
 
     @Test
