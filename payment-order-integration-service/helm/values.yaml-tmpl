@@ -106,3 +106,10 @@ secrets:
   IDENTITY_PASSWORD: $IDENTITY_PASSWORD
   MULESOFT_API_KEYS: $MULESOFT_API_KEYS
   BB_CLIENT_SECRET_ID: $BB_CLIENT_SECRET_ID
+
+autoscaling:
+  enabled: $HPA_ENABLED
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPU: 1024m
+  targetMemory: 2048Mi
