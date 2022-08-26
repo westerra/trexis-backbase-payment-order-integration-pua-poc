@@ -54,9 +54,8 @@ class PaymentOrdersServiceTest {
     @Test
     void postPaymentOrdersInternalTransferImmediateHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
-
-        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
+        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
         ReflectionTestUtils.setField(PaymentOrdersMapper.class, "zoneId", zoneId);
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
 
@@ -70,6 +69,7 @@ class PaymentOrdersServiceTest {
     @Test
     void postPaymentOrdersInternalTransferImmediateUnHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
 
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("false", "Something went wrong with a long message in the response", null);
@@ -89,6 +89,7 @@ class PaymentOrdersServiceTest {
         finiteConfiguration.setPaymentFrequencies(paymentFrequencies);
 
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_schedule_weekly.json");
 
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
@@ -131,6 +132,7 @@ class PaymentOrdersServiceTest {
     void postPaymentOrdersInternalTransfer_truncatesReasonCodeAbove4Characters() throws IOException {
         // common setup
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
 
         // TEST CASE: 7 character reasonCode - should truncate to 4
@@ -164,6 +166,7 @@ class PaymentOrdersServiceTest {
         finiteConfiguration.setPaymentFrequencies(paymentFrequencies);
 
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("intrabank_transfer_recurring.json");
 
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("pass", "Well Done", "FakeId");
@@ -188,6 +191,7 @@ class PaymentOrdersServiceTest {
     @Test
     void updatePaymentOrderHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
 
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
@@ -201,6 +205,7 @@ class PaymentOrdersServiceTest {
     @Test
     void updatePaymentOrderUnHappyPath() throws IOException {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
 
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("false", "Something went wrong with a long message in the response", null);
@@ -215,6 +220,7 @@ class PaymentOrdersServiceTest {
     void updatePaymentOrder_truncatesReasonCodeAbove4Characters() throws IOException {
         // common setup
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
 
         // TEST CASE: 7 character reasonCode - should truncate to 4
