@@ -14,6 +14,6 @@
             "name": "upgrade/2022_06" 
          } 
      }, 
-     "reviewers": [{"username": "hendriktredoux"}, {"username": "wcarswelltrexis"}, {"username": "bmcswee-trexis"}, {"username": "NoahMcClelland"}],
+     "reviewers": [{"username": "hendriktredoux"}, {"username": "wcarswelltrexis"}, {"username": "bmcswee-trexis"}, {"username": "NoahMcClelland"}, {"username":"brodtrexis"}, {"username":"rafaelpena1985"}],
      "close_source_branch": false 
 }
