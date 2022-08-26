@@ -34,7 +34,7 @@ public class PaymentOrdersService {
     @Value("${rejectRecurringStartingToday.message}")
     private String rejectRecurringStartingTodayMessage;
     @Value("${timeZone.zoneId:America/Denver}")
-    private static String zoneId;
+    private String zoneId;
 
     @Value("${transferToContact.externalArrangementIdFormat:%s-S-00}")
     private String externalArrangementIdFormat;
