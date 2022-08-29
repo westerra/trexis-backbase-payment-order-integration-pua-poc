@@ -2,6 +2,8 @@ package net.trexis.experts.payments.service;
 
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import com.finite.api.model.ExchangeTransactionResult;
+
+import java.time.ZoneId;
 import java.util.Optional;
 import net.trexis.experts.finite.FiniteConfiguration;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
@@ -31,6 +33,8 @@ public class PaymentOrdersService {
     private boolean rejectRecurringStartingTodayEnabled;
     @Value("${rejectRecurringStartingToday.message}")
     private String rejectRecurringStartingTodayMessage;
+    @Value("${timeZone.zoneId:America/Denver}")
+    private String zoneId;
 
     @Value("${transferToContact.externalArrangementIdFormat:%s-S-00}")
     private String externalArrangementIdFormat;
@@ -47,7 +51,7 @@ public class PaymentOrdersService {
 
         if (rejectRecurringStartingTodayEnabled &&
                 paymentOrdersPostRequestBody.getPaymentMode() == PaymentModeEnum.RECURRING &&
-                LocalDate.now().isEqual(paymentOrdersPostRequestBody.getRequestedExecutionDate())) {
+                LocalDate.now(ZoneId.of(zoneId)).isEqual(paymentOrdersPostRequestBody.getRequestedExecutionDate())) {
             return new PaymentOrdersPostResponseBody()
                     .bankStatus(PaymentOrderStatus.REJECTED.getValue())
                     .reasonText(rejectRecurringStartingTodayMessage);
