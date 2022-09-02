@@ -5,16 +5,12 @@ import com.backbase.dbs.arrangement.arrangement_manager.v2.model.Schedule;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PaymentOrdersMapperTest {
-    private final String zoneId = "America/Denver";
-
     @Test
     public void calculateEndDateTimeFromRepeat_Success() {
         java.time.LocalDate startDate = LocalDate.parse("2021-04-01");
@@ -31,9 +27,9 @@ public class PaymentOrdersMapperTest {
     @Test
     public void singlePaymentOrderForTodayShouldGetStatusProcessed() {
         var paymentOrdersPostRequestBody = new PaymentOrdersPostRequestBody();
-        ReflectionTestUtils.setField(PaymentOrdersMapper.class, "zoneId", zoneId);
+
         paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
-        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now(ZoneId.of(zoneId)));
+        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now());
 
         assertEquals(PaymentOrderStatus.PROCESSED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
     }
@@ -41,9 +37,9 @@ public class PaymentOrdersMapperTest {
     @Test
     public void singlePaymentOrderForNextWeekShouldGetStatusAccepted() {
         var paymentOrdersPostRequestBody = new PaymentOrdersPostRequestBody();
-        ReflectionTestUtils.setField(PaymentOrdersMapper.class, "zoneId", zoneId);
+
         paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
-        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now(ZoneId.of(zoneId)).plusWeeks(1));
+        paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now().plusWeeks(1));
 
         assertEquals(PaymentOrderStatus.ACCEPTED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
     }
