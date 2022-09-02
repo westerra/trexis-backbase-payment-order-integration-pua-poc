@@ -20,6 +20,12 @@ finite:
 ### Versions and Upgrade
 The service is developed using the Backbase Service SDK.  The service contains the dependency to the correct service SDK used to package the service, update the dependency to upgrade this to the SDK matching your deployment.
 
+### Timezone configuration for transaction date require the following configurations where zoneId value can be different based on time zone:
+```
+timeZone:
+    zoneId: America/Denver
+```
+
 ### About treXis Co-Develop
 The treXis co-development program allow treXis customers and partners to clone/fork code repositories from the treXis Bitbucket repository.  A list of all accelerators are published on the https://experts.trexis.net.
 
