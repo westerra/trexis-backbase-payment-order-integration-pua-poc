@@ -38,7 +38,7 @@ transferToContact:
 
 finite:
   hosturl: http://localhost:9090
-  apikey: demo-api-key-do-not-use-in-production
+  apikey: demo-api-key-do-not-use-in-production-mulesoft
   paymentFrequencies:
     -
       backbase: ONCE
@@ -65,3 +65,6 @@ finite:
 logging:
   level:
     net.trexis.experts: WARN
+
+timeZone:
+  zoneId: America/Denver

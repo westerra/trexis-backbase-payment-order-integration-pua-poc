@@ -14,6 +14,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
@@ -22,7 +23,7 @@ public class PaymentOrdersMapper {
 
     public static final String CACHE_EXTERNAL_ID = "id";
 
-    public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, FiniteConfiguration finiteConfiguration) {
+    public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, FiniteConfiguration finiteConfiguration, String zoneId) {
         var exchangeTransaction = new ExchangeTransaction();
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
@@ -67,7 +68,7 @@ public class PaymentOrdersMapper {
             }
 
             exchangeTransaction.setRecurringSchedule(schedule);
-        } else if(!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now())){
+        } else if(!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))){
             var schedule = new Schedule();
             schedule.setStrategy(Schedule.StrategyEnum.NONE);
             schedule.setFrequency("ONCE");
@@ -79,10 +80,10 @@ public class PaymentOrdersMapper {
         return exchangeTransaction;
     }
 
-    public static PaymentOrderStatus createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+    public static PaymentOrderStatus createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String zoneId) {
         //Return processed if requested date is the same as today and payment type is single as core is handling this immediately
         if(paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
-            if(paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now())) {
+            if(paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))) {
                 log.debug("Execution Date is immediate, saving payment order as PROCESSED");
                 return PaymentOrderStatus.PROCESSED;
             }
