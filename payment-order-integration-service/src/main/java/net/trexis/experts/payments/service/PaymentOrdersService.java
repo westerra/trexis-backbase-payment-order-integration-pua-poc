@@ -33,8 +33,6 @@ public class PaymentOrdersService {
     private boolean rejectRecurringStartingTodayEnabled;
     @Value("${rejectRecurringStartingToday.message}")
     private String rejectRecurringStartingTodayMessage;
-    @Value("${timeZone.zoneId:America/Denver}")
-    private String zoneId;
 
     @Value("${transferToContact.externalArrangementIdFormat:%s-S-00}")
     private String externalArrangementIdFormat;
@@ -45,10 +43,11 @@ public class PaymentOrdersService {
     @Value("${transferToContact.leftPadChar:0}")
     private String leftPadChar;
 
+    @Value("${timeZone.zoneId:America/Denver}")
+    private String zoneId;
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
         log.debug("BB Payment Request {}", paymentOrdersPostRequestBody);
-
         if (rejectRecurringStartingTodayEnabled &&
                 paymentOrdersPostRequestBody.getPaymentMode() == PaymentModeEnum.RECURRING &&
                 LocalDate.now(ZoneId.of(zoneId)).isEqual(paymentOrdersPostRequestBody.getRequestedExecutionDate())) {
@@ -71,7 +70,7 @@ public class PaymentOrdersService {
         }
 
         try {
-            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, finiteConfiguration);
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, finiteConfiguration, zoneId);
 
             log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
 
@@ -83,7 +82,7 @@ public class PaymentOrdersService {
             }
 
             var paymentOrderStatus =
-                    PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody);
+                    PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody, zoneId);
             //Send refresh request on exchange.
             if (paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
                 this.triggerIngestion(externalUserId);
@@ -111,7 +110,7 @@ public class PaymentOrdersService {
     public PaymentOrderPutResponseBody updatePaymentOrder(String exchangeId, PaymentOrderPutRequestBody putRequestBody, String externalUserId) {
         try {
             log.debug("BB Payment Request {}", putRequestBody);
-            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(putRequestBody, finiteConfiguration);
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(putRequestBody, finiteConfiguration, zoneId);
             log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
 
             var exchangeTransactionResult =
@@ -121,7 +120,7 @@ public class PaymentOrdersService {
                 throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult));
             }
             var paymentOrderStatus =
-                    PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody);
+                    PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody, zoneId);
             //Send refresh request on exchange.
             if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
                 this.triggerIngestion(externalUserId);

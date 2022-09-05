@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -56,7 +55,7 @@ class PaymentOrdersServiceTest {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
-        ReflectionTestUtils.setField(PaymentOrdersMapper.class, "zoneId", zoneId);
+
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
 
         when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
@@ -113,7 +112,6 @@ class PaymentOrdersServiceTest {
 
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
-
         String rejectionMessage = "The start date cannot be today's date. Please choose a future date.";
 
         ReflectionTestUtils.setField(paymentOrdersService, "rejectRecurringStartingTodayEnabled", true);
@@ -247,7 +245,7 @@ class PaymentOrdersServiceTest {
     @Test
     void cancelPaymentOrderHappyPath() {
         PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
-
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
         when(exchangeApi.deleteExchangeTransaction(anyString(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
 

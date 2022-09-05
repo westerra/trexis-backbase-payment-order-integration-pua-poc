@@ -31,21 +31,19 @@ public class PaymentOrdersMapperTest {
     @Test
     public void singlePaymentOrderForTodayShouldGetStatusProcessed() {
         var paymentOrdersPostRequestBody = new PaymentOrdersPostRequestBody();
-        ReflectionTestUtils.setField(PaymentOrdersMapper.class, "zoneId", zoneId);
         paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
         paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now(ZoneId.of(zoneId)));
 
-        assertEquals(PaymentOrderStatus.PROCESSED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
+        assertEquals(PaymentOrderStatus.PROCESSED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody,zoneId));
     }
 
     @Test
     public void singlePaymentOrderForNextWeekShouldGetStatusAccepted() {
         var paymentOrdersPostRequestBody = new PaymentOrdersPostRequestBody();
-        ReflectionTestUtils.setField(PaymentOrdersMapper.class, "zoneId", zoneId);
         paymentOrdersPostRequestBody.setPaymentMode(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE);
         paymentOrdersPostRequestBody.setRequestedExecutionDate(LocalDate.now(ZoneId.of(zoneId)).plusWeeks(1));
 
-        assertEquals(PaymentOrderStatus.ACCEPTED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody));
+        assertEquals(PaymentOrderStatus.ACCEPTED, PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody,zoneId));
     }
 
     @Test
