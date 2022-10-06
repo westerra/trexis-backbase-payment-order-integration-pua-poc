@@ -65,3 +65,6 @@ finite:
 logging:
   level:
     net.trexis.experts: WARN
+
+timeZone:
+  zoneId: America/Denver
