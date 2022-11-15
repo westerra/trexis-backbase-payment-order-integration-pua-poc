@@ -4,11 +4,14 @@ import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import com.finite.api.model.ExchangeTransactionResult;
 
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import net.trexis.experts.finite.FiniteConfiguration;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
 import java.time.LocalDate;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
+import net.trexis.experts.ingestion_service.model.StartIngestionGetResponseBody;
+import net.trexis.experts.ingestion_service.model.StartIngestionPostRequest;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
@@ -85,7 +88,7 @@ public class PaymentOrdersService {
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody, zoneId);
             //Send refresh request on exchange.
             if (paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
-                this.triggerIngestion(externalUserId);
+                this.triggerIngestion(externalUserId, List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
@@ -123,7 +126,7 @@ public class PaymentOrdersService {
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody, zoneId);
             //Send refresh request on exchange.
             if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
-                this.triggerIngestion(externalUserId);
+                this.triggerIngestion(externalUserId, List.of(putRequestBody.getOriginatorAccount().getArrangementId(), putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
             }
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
@@ -159,11 +162,11 @@ public class PaymentOrdersService {
         return cancelResponse;
     }
 
-    private void triggerIngestion(String externalUserId){
+    private void triggerIngestion(String externalUserId, List<String> internalArrangementIds){
         if(externalUserId!=null){
             try{
                 //We ingest the entire user, so that balances on accounts get updated, including notifications get triggerded
-                ingestionApi.getStartEntityIngestion(externalUserId, true);
+                ingestionApi.startPostEntityIngestion(externalUserId, new StartIngestionPostRequest().internalArrangementIds(internalArrangementIds));
             } catch (Exception ex){
                 log.error("Error triggering ingestion", ex);
             }

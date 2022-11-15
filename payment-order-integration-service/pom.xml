@@ -29,7 +29,7 @@
         <spec.dependencies.path>${project.build.directory}/dependencies</spec.dependencies.path>
 
         <!-- treXis -->
-        <trexis-bom.version>1.0.0.2022.06-SNAPSHOT</trexis-bom.version>
+        <trexis-bom.version>1.0.1.2022.06-SNAPSHOT</trexis-bom.version>
 
         <!-- BACKBASE -->
         <dbs.version>2022.06</dbs.version>
