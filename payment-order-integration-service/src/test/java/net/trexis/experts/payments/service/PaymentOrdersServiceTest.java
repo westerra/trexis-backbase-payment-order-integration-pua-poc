@@ -154,6 +154,33 @@ class PaymentOrdersServiceTest {
     }
 
     @Test
+    void postPaymentOrdersInternalTransfer_truncatesReasonTextAbove35Characters() throws IOException {
+        // common setup
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
+        PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
+
+        // TEST CASE: 50 character reasonText - should truncate to 35
+        var reasonText = "H1UYjF99f82RoRnlKVHDCDZH6jjJ2dqEtg1Ak89c3HZCUDOLre";
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("abcd", reasonText, "FakeId");
+        when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, "mockExternalUserId");
+
+        assertEquals(35, paymentOrdersPostResponseBody.getReasonText().length());
+        assertEquals(reasonText.substring(0, 35), paymentOrdersPostResponseBody.getReasonText());
+
+        // TEST CASE: 10 character reasonText - should not truncate
+        reasonText = "k1lI7Symx1";
+        exchangeTransactionResult = testUtilities.getExchangeTransactionResult("abcd", reasonText, "FakeId");
+        when(exchangeApi.performExchangeTransaction(any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        paymentOrdersPostResponseBody = paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, "mockExternalUserId");
+
+        assertEquals(reasonText, paymentOrdersPostResponseBody.getReasonText());
+    }
+
+    @Test
     void postPaymentOrders_IntrabankTransfer_ShouldMapToAccountNumber() throws IOException {
         // setup
         List<FiniteConfiguration.BackbaseFiniteMapping> paymentFrequencies = new ArrayList<>();
@@ -239,6 +266,33 @@ class PaymentOrdersServiceTest {
         paymentOrderPutResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
 
         assertEquals(paymentOrderPutResponseBody.getReasonCode(), exchangeTransactionResult.getStatus());
+    }
+
+    @Test
+    void updatePaymentOrder_truncatesReasonTextAbove35Characters() throws IOException {
+        // common setup
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
+        PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
+
+        // TEST CASE: 50 character reasonText - should truncate to 35
+        var reasonText = "H1UYjF99f82RoRnlKVHDCDZH6jjJ2dqEtg1Ak89c3HZCUDOLre";
+        ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("abcd", reasonText, "FakeId");
+        when(exchangeApi.updateExchangeTransaction(anyString(), any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        PaymentOrderPutResponseBody paymentOrderPutResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
+
+        assertEquals(35, paymentOrderPutResponseBody.getReasonText().length());
+        assertEquals(reasonText.substring(0, 35), paymentOrderPutResponseBody.getReasonText());
+
+        // TEST CASE: 10 character reasonText - should not truncate
+        reasonText = "k1lI7Symx1";
+        exchangeTransactionResult = testUtilities.getExchangeTransactionResult(reasonText, "Well Done", "FakeId");
+        when(exchangeApi.updateExchangeTransaction(anyString(), any(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
+
+        paymentOrderPutResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
+
+        assertEquals(paymentOrderPutResponseBody.getReasonText(), exchangeTransactionResult.getReason());
     }
 
 
