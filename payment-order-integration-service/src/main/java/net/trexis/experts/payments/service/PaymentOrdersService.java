@@ -95,9 +95,12 @@ public class PaymentOrdersService {
             paymentOrdersPostResponseBody.setBankStatus(paymentOrderStatus.getValue());
             // This field has a max of 4 characters
             Optional.ofNullable(exchangeTransactionResult.getStatus())
-                    .map(this::maxLength4)
+                    .map(rawValue -> this.truncateTo(rawValue, 4))
                     .ifPresent(paymentOrdersPostResponseBody::reasonCode);
-            paymentOrdersPostResponseBody.setReasonText(exchangeTransactionResult.getReason());
+            // This field has a max of 35 characters
+            Optional.ofNullable(exchangeTransactionResult.getReason())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrdersPostResponseBody::setReasonText);
             return paymentOrdersPostResponseBody;
 
         } catch (RuntimeException ex) {
@@ -133,9 +136,12 @@ public class PaymentOrdersService {
             paymentOrderPutResponseBody.setBankStatus(paymentOrderStatus.getValue());
             // This field has a max of 4 characters
             Optional.ofNullable(exchangeTransactionResult.getStatus())
-                    .map(this::maxLength4)
+                    .map(rawValue -> this.truncateTo(rawValue, 4))
                     .ifPresent(paymentOrderPutResponseBody::reasonCode);
-            paymentOrderPutResponseBody.setReasonText(exchangeTransactionResult.getReason());
+            // This field has a max of 35 characters
+            Optional.ofNullable(exchangeTransactionResult.getReason())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrderPutResponseBody::setReasonText);
             return paymentOrderPutResponseBody;
 
         } catch (RuntimeException ex) {
@@ -186,12 +192,12 @@ public class PaymentOrdersService {
         return compatibleReason;
     }
 
-    private String maxLength4(String input) {
+    private String truncateTo(String input, Integer maxLength) {
         if (input == null) {
             return "";
         }
-        return input.length() > 4
-                ? input.substring(0, 4)
+        return input.length() > maxLength
+                ? input.substring(0, maxLength)
                 : input;
     }
 }
