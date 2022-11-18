@@ -108,7 +108,10 @@ public class PaymentOrdersService {
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-            paymentOrdersPostResponseBody.setReasonText(ex.getMessage());
+            // This field has a max of 35 characters
+            Optional.ofNullable(ex.getMessage())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrdersPostResponseBody::setReasonText);
             return paymentOrdersPostResponseBody;
         }
     }
@@ -149,7 +152,10 @@ public class PaymentOrdersService {
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-            paymentOrderPutResponseBody.setReasonText(ex.getMessage());
+            // This field has a max of 35 characters
+            Optional.ofNullable(ex.getMessage())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrderPutResponseBody::setReasonText);
             return paymentOrderPutResponseBody;
         }
     }
