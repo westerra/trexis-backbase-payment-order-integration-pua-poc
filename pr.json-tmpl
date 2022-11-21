@@ -1,6 +1,6 @@
 { 
-    "title": "Merge from master branch to upgrade/2022_06", 
-    "description": "Automated PR from master to upgrade/2022_06",
+    "title": "Merge from master branch to $UPGRADE_BRANCH", 
+    "description": "Automated PR from master to $UPGRADE_BRANCH",
     "source": { 
         "branch": { 
            "name": "master" 
@@ -11,7 +11,7 @@
     }, 
     "destination": { 
         "branch": { 
-            "name": "upgrade/2022_06" 
+            "name": "$UPGRADE_BRANCH" 
          } 
      }, 
      "reviewers": [{"username": "hendriktredoux"}, {"username": "wcarswelltrexis"}, {"username": "bmcswee-trexis"}, {"username": "NoahMcClelland"}, {"username":"brodtrexis"}, {"username":"rafaelpena1985"}],
