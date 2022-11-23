@@ -4,11 +4,14 @@ import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
 import com.finite.api.model.ExchangeTransactionResult;
 
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import net.trexis.experts.finite.FiniteConfiguration;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
 import java.time.LocalDate;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
+import net.trexis.experts.ingestion_service.model.StartIngestionGetResponseBody;
+import net.trexis.experts.ingestion_service.model.StartIngestionPostRequest;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
@@ -85,16 +88,19 @@ public class PaymentOrdersService {
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody, zoneId);
             //Send refresh request on exchange.
             if (paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
-                this.triggerIngestion(externalUserId);
+                this.triggerIngestion(externalUserId, List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
             paymentOrdersPostResponseBody.setBankStatus(paymentOrderStatus.getValue());
             // This field has a max of 4 characters
             Optional.ofNullable(exchangeTransactionResult.getStatus())
-                    .map(this::maxLength4)
+                    .map(rawValue -> this.truncateTo(rawValue, 4))
                     .ifPresent(paymentOrdersPostResponseBody::reasonCode);
-            paymentOrdersPostResponseBody.setReasonText(exchangeTransactionResult.getReason());
+            // This field has a max of 35 characters
+            Optional.ofNullable(exchangeTransactionResult.getReason())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrdersPostResponseBody::setReasonText);
             return paymentOrdersPostResponseBody;
 
         } catch (RuntimeException ex) {
@@ -102,7 +108,10 @@ public class PaymentOrdersService {
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-            paymentOrdersPostResponseBody.setReasonText(ex.getMessage());
+            // This field has a max of 35 characters
+            Optional.ofNullable(ex.getMessage())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrdersPostResponseBody::setReasonText);
             return paymentOrdersPostResponseBody;
         }
     }
@@ -123,16 +132,19 @@ public class PaymentOrdersService {
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody, zoneId);
             //Send refresh request on exchange.
             if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
-                this.triggerIngestion(externalUserId);
+                this.triggerIngestion(externalUserId, List.of(putRequestBody.getOriginatorAccount().getArrangementId(), putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
             }
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
             paymentOrderPutResponseBody.setBankStatus(paymentOrderStatus.getValue());
             // This field has a max of 4 characters
             Optional.ofNullable(exchangeTransactionResult.getStatus())
-                    .map(this::maxLength4)
+                    .map(rawValue -> this.truncateTo(rawValue, 4))
                     .ifPresent(paymentOrderPutResponseBody::reasonCode);
-            paymentOrderPutResponseBody.setReasonText(exchangeTransactionResult.getReason());
+            // This field has a max of 35 characters
+            Optional.ofNullable(exchangeTransactionResult.getReason())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrderPutResponseBody::setReasonText);
             return paymentOrderPutResponseBody;
 
         } catch (RuntimeException ex) {
@@ -140,7 +152,10 @@ public class PaymentOrdersService {
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-            paymentOrderPutResponseBody.setReasonText(ex.getMessage());
+            // This field has a max of 35 characters
+            Optional.ofNullable(ex.getMessage())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrderPutResponseBody::setReasonText);
             return paymentOrderPutResponseBody;
         }
     }
@@ -159,11 +174,11 @@ public class PaymentOrdersService {
         return cancelResponse;
     }
 
-    private void triggerIngestion(String externalUserId){
+    private void triggerIngestion(String externalUserId, List<String> internalArrangementIds){
         if(externalUserId!=null){
             try{
                 //We ingest the entire user, so that balances on accounts get updated, including notifications get triggerded
-                ingestionApi.getStartEntityIngestion(externalUserId, true);
+                ingestionApi.startPostEntityIngestion(externalUserId, new StartIngestionPostRequest().internalArrangementIds(internalArrangementIds));
             } catch (Exception ex){
                 log.error("Error triggering ingestion", ex);
             }
@@ -183,12 +198,12 @@ public class PaymentOrdersService {
         return compatibleReason;
     }
 
-    private String maxLength4(String input) {
+    private String truncateTo(String input, Integer maxLength) {
         if (input == null) {
             return "";
         }
-        return input.length() > 4
-                ? input.substring(0, 4)
+        return input.length() > maxLength
+                ? input.substring(0, maxLength)
                 : input;
     }
 }
