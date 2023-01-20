@@ -53,7 +53,7 @@ definitions:
         script:
           - BUILD_STATUS="successful"
           - if [[ $BITBUCKET_EXIT_CODE -ne 0 ]]; then BUILD_STATUS="failed" ; fi
-          - sed -e 's@$BITBUCKET_REPO_SLUG@'"$BITBUCKET_REPO_SLUG"'@' pr.json-tmpl > pr.json
+          - sed -e 's@$BITBUCKET_REPO_SLUG@'"$BITBUCKET_REPO_SLUG"'@' -e 's@$UPGRADE_BRANCH@'"$UPGRADE_BRANCH"'@' pr.json-tmpl > pr.json
           - >- 
             curl https://api.bitbucket.org/2.0/repositories/trexis/$BITBUCKET_REPO_SLUG/pullrequests -u trexis_support_admin:$SUPPORT_USER_PR_APP_PWD -X POST -H "Content-Type: application/json" -H "Accept: application/json" -d @pr.json
 
