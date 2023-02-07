@@ -4,6 +4,7 @@
 
 replicaCount: 1
 namespace: $NAMESPACE
+nodegroup: $EKS_NODE_GROUP
 
 image:
   repository: 181741612687.dkr.ecr.us-east-2.amazonaws.com/dbs-payment-order-integration-service
