@@ -62,7 +62,7 @@
             <dependency>
                 <groupId>net.trexis.experts</groupId>
                 <artifactId>experts-bom</artifactId>
-                <version>1.0.0.LTS-SNAPSHOT</version>
+                <version>1.0.1.LTS-SNAPSHOT</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
