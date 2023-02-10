@@ -4,6 +4,7 @@
 
 replicaCount: 1
 namespace: $NAMESPACE
+nodegroup: $EKS_NODE_GROUP
 
 image:
   repository: 181741612687.dkr.ecr.us-east-2.amazonaws.com/dbs-payment-order-integration-service
@@ -24,7 +25,7 @@ ingress:
   enabled: false
   annotations: {
       alb.ingress.kubernetes.io/certificate-arn: $SSL_ARN,
-      alb.ingress.kubernetes.io/waf-acl-id: 2a8cxxx-xxxxx,
+#      alb.ingress.kubernetes.io/waf-acl-id: 2a8cxxx-xxxxx,
       alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-2:1xxxx:regional/webacl/waf/xxxxx,
       alb.ingress.kubernetes.io/shield-advanced-protection: "true",
       alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15",
