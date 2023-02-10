@@ -78,7 +78,7 @@ public class PaymentOrdersService {
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
             log.debug("Payment with result {}", exchangeTransactionResult.toString());
             if (exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
-                throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult));
+                throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             }
 
             var paymentOrderStatus =
@@ -106,10 +106,8 @@ public class PaymentOrdersService {
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-            // This field has a max of 35 characters
-            Optional.ofNullable(ex.getMessage())
-                    .map(rawValue -> this.truncateTo(rawValue, 35))
-                    .ifPresent(paymentOrdersPostResponseBody::setReasonText);
+            paymentOrdersPostResponseBody.setErrorDescription(getBBCompatibleErrorDescription(ex.getMessage()));
+            paymentOrdersPostResponseBody.setReasonText(getBBCompatibleReason(ex.getMessage()));
             return paymentOrdersPostResponseBody;
         }
     }
@@ -124,7 +122,7 @@ public class PaymentOrdersService {
                     exchangeApi.updateExchangeTransaction(exchangeId, exchangeTransaction, null, null);
             log.debug("Payment with result {}", exchangeTransactionResult.toString());
             if(exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
-                throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult));
+                throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             }
             var paymentOrderStatus =
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody, zoneId);
@@ -139,10 +137,7 @@ public class PaymentOrdersService {
             Optional.ofNullable(exchangeTransactionResult.getStatus())
                     .map(rawValue -> this.truncateTo(rawValue, 4))
                     .ifPresent(paymentOrderPutResponseBody::reasonCode);
-            // This field has a max of 35 characters
-            Optional.ofNullable(exchangeTransactionResult.getReason())
-                    .map(rawValue -> this.truncateTo(rawValue, 35))
-                    .ifPresent(paymentOrderPutResponseBody::setReasonText);
+            paymentOrderPutResponseBody.setReasonText(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             return paymentOrderPutResponseBody;
 
         } catch (RuntimeException ex) {
@@ -150,10 +145,8 @@ public class PaymentOrdersService {
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-            // This field has a max of 35 characters
-            Optional.ofNullable(ex.getMessage())
-                    .map(rawValue -> this.truncateTo(rawValue, 35))
-                    .ifPresent(paymentOrderPutResponseBody::setReasonText);
+            paymentOrderPutResponseBody.setErrorDescription(getBBCompatibleErrorDescription(ex.getMessage()));
+            paymentOrderPutResponseBody.setReasonText(getBBCompatibleReason(ex.getMessage()));
             return paymentOrderPutResponseBody;
         }
     }
@@ -183,14 +176,27 @@ public class PaymentOrdersService {
         }
     }
 
-    private String getBBCompatibleReason(ExchangeTransactionResult exchangeTransactionResult){
+    private String getBBCompatibleReason(String reasonText){
         String compatibleReason = "Unable to process payment order";
-        if (exchangeTransactionResult.getReason() != null && !exchangeTransactionResult.getReason().isEmpty()) {
-            compatibleReason = exchangeTransactionResult.getReason();
+        if (!StringUtils.isEmpty(reasonText)) {
+            compatibleReason = reasonText;
             //ToDo:  Logged a defect at backbase that the reason is limited to 32 characters, and our reasons are longer.
             if(compatibleReason.length()>35) {
                 log.warn("Original error message truncated, value before truncate -> " + compatibleReason);
                 compatibleReason = compatibleReason.substring(0, 32) + "..."; //Add ... to indicate it got truncated
+            }
+        }
+        return compatibleReason;
+    }
+
+    private String getBBCompatibleErrorDescription(String descriptionText){
+        String compatibleReason = "Unable to process payment order";
+        if (!StringUtils.isEmpty(descriptionText)) {
+            compatibleReason = descriptionText;
+            //ToDo:  Logged a defect at backbase that the reason is limited to 32 characters, and our reasons are longer.
+            if(compatibleReason.length()>105) {
+                log.warn("Original error message truncated, value before truncate -> " + compatibleReason);
+                compatibleReason = compatibleReason.substring(0, 102) + "..."; //Add ... to indicate it got truncated
             }
         }
         return compatibleReason;

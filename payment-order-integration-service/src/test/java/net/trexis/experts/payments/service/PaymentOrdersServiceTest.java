@@ -283,7 +283,7 @@ class PaymentOrdersServiceTest {
         PaymentOrderPutResponseBody paymentOrderPutResponseBody = paymentOrdersService.updatePaymentOrder("FakeId", paymentOrderPutRequestBody, "mockExternalUserId");
 
         assertEquals(35, paymentOrderPutResponseBody.getReasonText().length());
-        assertEquals(reasonText.substring(0, 35), paymentOrderPutResponseBody.getReasonText());
+        assertEquals("H1UYjF99f82RoRnlKVHDCDZH6jjJ2dqE...", paymentOrderPutResponseBody.getReasonText());
 
         // TEST CASE: 10 character reasonText - should not truncate
         reasonText = "k1lI7Symx1";
