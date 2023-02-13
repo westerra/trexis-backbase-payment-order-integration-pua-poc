@@ -1,26 +1,34 @@
 package net.trexis.experts.payments.service;
 
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
-import com.finite.api.model.ExchangeTransactionResult;
-
-import java.time.ZoneId;
-import java.util.List;
-import java.util.Optional;
-import net.trexis.experts.finite.FiniteConfiguration;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CancelResponse;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CounterpartyAccount;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.Identification;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrderPutRequestBody;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrderPutResponseBody;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
-import java.time.LocalDate;
-import net.trexis.experts.ingestion_service.api.IngestionApi;
-import net.trexis.experts.ingestion_service.model.StartIngestionGetResponseBody;
-import net.trexis.experts.ingestion_service.model.StartIngestionPostRequest;
-import net.trexis.experts.payments.models.PaymentOrderStatus;
-import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
-import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostResponseBody;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.SchemeName;
+import com.backbase.dbs.arrangement.arrangement_manager.v2.model.TransferTransactionInformation;
+import com.finite.api.ExchangeApi;
+import com.finite.api.model.ExchangeTransactionResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.trexis.experts.finite.FiniteConfiguration;
+import net.trexis.experts.ingestion_service.api.IngestionApi;
+import net.trexis.experts.ingestion_service.model.StartIngestionPostRequest;
+import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
+import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
+import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import com.finite.api.ExchangeApi;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -48,6 +56,13 @@ public class PaymentOrdersService {
 
     @Value("${timeZone.zoneId:America/Denver}")
     private String zoneId;
+
+    Executor async = new Executor() {
+        @Override
+        public void execute(Runnable command) {
+            new Thread(command).start();
+        }
+    };
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
         log.debug("BB Payment Request {}", paymentOrdersPostRequestBody);
@@ -157,8 +172,12 @@ public class PaymentOrdersService {
         var isAccepted = Boolean.FALSE;
         try {
             log.debug("Cancelling transfer with exchange id {}", bankReferenceId);
-            exchangeApi.deleteExchangeTransaction(bankReferenceId, null, null);
-            isAccepted = Boolean.TRUE;
+            ExchangeTransactionResult exchangeTransactionResult = exchangeApi.deleteExchangeTransaction(bankReferenceId, null, null);
+            if(exchangeTransactionResult.getStatus()!=null && Boolean.valueOf(exchangeTransactionResult.getStatus())){
+                isAccepted = Boolean.TRUE;
+            } else {
+                log.error("Error deleting payment order {}: {}", bankReferenceId, exchangeTransactionResult.getReason());
+            }
         } catch (RuntimeException ex) {
             log.error("Error while deleting payment order with bank reference id {} exception {}",bankReferenceId, ex);
         }
@@ -169,12 +188,14 @@ public class PaymentOrdersService {
 
     private void triggerIngestion(String externalUserId, List<String> internalArrangementIds){
         if(externalUserId!=null){
-            try{
-                //We ingest the entire user, so that balances on accounts get updated, including notifications get triggerded
-                ingestionApi.startPostEntityIngestion(externalUserId, new StartIngestionPostRequest().internalArrangementIds(internalArrangementIds));
-            } catch (Exception ex){
-                log.error("Error triggering ingestion", ex);
-            }
+            async.execute(() -> {
+                try {
+                    //We ingest the entire user, so that balances on accounts get updated, including notifications get triggerded
+                    ingestionApi.startPostEntityIngestion(externalUserId, new StartIngestionPostRequest().internalArrangementIds(internalArrangementIds));
+                } catch (Exception ex) {
+                    log.error("Error triggering ingestion", ex);
+                }
+            });
         }
     }
 
