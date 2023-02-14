@@ -28,7 +28,7 @@ spec:
         {{- end }}
     spec:
       nodeSelector:
-        eks.amazonaws.com/nodegroup: {{ .Values.nodegroup }}
+        alpha.eksctl.io/cluster-name: {{ .Values.nodegroup }}
       securityContext:
         runAsGroup: 1000
         runAsUser: 1000
