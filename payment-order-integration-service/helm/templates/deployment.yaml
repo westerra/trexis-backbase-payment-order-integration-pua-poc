@@ -27,8 +27,8 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      nodeSelector:
-        alpha.eksctl.io/cluster-name: {{ .Values.nodegroup }}
+#      nodeSelector:
+#        alpha.eksctl.io/cluster-name: {{ .Values.nodegroup }}
       securityContext:
         runAsGroup: 1000
         runAsUser: 1000

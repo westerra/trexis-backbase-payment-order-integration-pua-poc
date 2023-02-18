@@ -47,7 +47,7 @@ public class PaymentOrdersService {
     private String zoneId;
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
-        log.debug("BB Payment Request {}", paymentOrdersPostRequestBody);
+        log.debug("BB Payment Request {} ", paymentOrdersPostRequestBody);
         if (rejectRecurringStartingTodayEnabled &&
                 paymentOrdersPostRequestBody.getPaymentMode() == PaymentModeEnum.RECURRING &&
                 LocalDate.now(ZoneId.of(zoneId)).isEqual(paymentOrdersPostRequestBody.getRequestedExecutionDate())) {
