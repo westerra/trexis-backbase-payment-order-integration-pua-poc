@@ -12,7 +12,7 @@
         <sig.secret.key>JWTSecretKeyDontUseInProduction!</sig.secret.key>
         <user.context.key>JWTSecretKeyDontUseInProduction!</user.context.key>
         <messaging.password>password</messaging.password>
-        <blade.version>4.20.0</blade.version>
+        <blade.version>4.21.0</blade.version>
         <port>8054</port>
     </properties>
 

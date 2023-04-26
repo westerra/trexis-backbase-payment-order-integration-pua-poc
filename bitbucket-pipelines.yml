@@ -69,3 +69,8 @@ pipelines:
       - parallel:
           - step: *install
           - step: *security
+    upgrade/*:
+      - parallel:
+          - step: *deploy
+          - step: *security
+      - step: *slack
