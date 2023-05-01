@@ -2,8 +2,8 @@
   "paymentType": "INTRABANK_TRANSFER",
   "originatorAccount": {
     "identification": {
-      "identification": "31b3772f-7b7f-4699-8268-1a5be6535496",
-      "schemeName": "ID"
+      "identification": "917916",
+      "schemeName": "BBAN"
     },
     "name": "PRIME SHARE"
   },
@@ -11,17 +11,9 @@
     "transferFrequency": "WEEKLY",
     "every": "1",
     "on": 2,
-    "startDate": {
-      "year": 2022,
-      "month": 7,
-      "day": 18
-    }
+    "startDate": "2022-07-18"
   },
-  "requestedExecutionDate": {
-    "year": 2022,
-    "month": 7,
-    "day": 18
-  },
+  "requestedExecutionDate": "2022-07-18",
   "paymentMode": "RECURRING",
   "instructionPriority": "NORM",
   "transferTransactionInformation": {
