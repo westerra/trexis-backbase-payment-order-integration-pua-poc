@@ -216,8 +216,8 @@
                             <inputSpec>
                                 ${basedir}/target/yaml/payment/payment-order-integration-outbound-api-v2.2.1.yaml
                             </inputSpec>
-                            <apiPackage>com.backbase.dbs.arrangement.arrangement-manager.api.client.v2</apiPackage>
-                            <modelPackage>com.backbase.dbs.arrangement.arrangement-manager.v2.model</modelPackage>
+                            <apiPackage>com.backbase.dbs.payment.payment-order-integration-outbound.api</apiPackage>
+                            <modelPackage>com.backbase.dbs.payment.payment-order-integration-outbound.model</modelPackage>
                         </configuration>
                     </execution>
                 </executions>
@@ -283,6 +283,17 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>
+                        --illegal-access=permit
+                        --add-opens java.base/java.time=ALL-UNNAMED
+                    </argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -1,15 +1,15 @@
 package net.trexis.experts.payments.service;
 
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CancelResponse;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.CounterpartyAccount;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.Identification;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrderPutRequestBody;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrderPutResponseBody;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostResponseBody;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.SchemeName;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.TransferTransactionInformation;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.CancelResponse;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.CounterpartyAccount;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.Identification;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutRequestBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutResponseBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostRequestBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostRequestBody.PaymentModeEnum;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostResponseBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.SchemeName;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.TransferTransactionInformation;
 import com.finite.api.ExchangeApi;
 import com.finite.api.model.ExchangeTransactionResult;
 import lombok.RequiredArgsConstructor;
