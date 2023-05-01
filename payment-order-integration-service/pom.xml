@@ -214,7 +214,7 @@
                         <phase>generate-sources</phase>
                         <configuration>
                             <inputSpec>
-                                ${basedir}/target/yaml/payment/payment-order-integration-outbound-api-v2.2.1.yaml
+                                ${basedir}/target/yaml/payment/payment-order-integration-outbound-api-v2.5.2.yaml
                             </inputSpec>
                             <apiPackage>com.backbase.dbs.payment.payment-order-integration-outbound.api</apiPackage>
                             <modelPackage>com.backbase.dbs.payment.payment-order-integration-outbound.model</modelPackage>
