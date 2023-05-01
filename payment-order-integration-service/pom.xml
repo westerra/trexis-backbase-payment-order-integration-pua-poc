@@ -12,7 +12,7 @@
 
     <groupId>net.trexis.experts</groupId>
     <artifactId>payment-order-integration-service</artifactId>
-    <version>1.0.4-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <packaging>war</packaging>
     <name>Trexis :: Backbase :: Payment Order Integration Service</name>
 
@@ -29,7 +29,7 @@
         <spec.dependencies.path>${project.build.directory}/dependencies</spec.dependencies.path>
 
         <!-- treXis -->
-        <trexis-bom.version>1.0.2-SNAPSHOT</trexis-bom.version>
+        <trexis-bom.version>1.1.0-SNAPSHOT</trexis-bom.version>
 
         <!-- BACKBASE -->
         <dbs.version>2023.02.18-LTS</dbs.version>
