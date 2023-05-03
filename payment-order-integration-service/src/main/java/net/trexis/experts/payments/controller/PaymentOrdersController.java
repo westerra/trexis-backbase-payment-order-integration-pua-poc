@@ -1,8 +1,12 @@
 package net.trexis.experts.payments.controller;
 
 import com.backbase.buildingblocks.backend.security.auth.config.SecurityContextUtil;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.*;
-import com.backbase.dbs.arrangement.arrangement_manager.api.client.v2.PaymentOrderIntegrationOutboundApi;
+import com.backbase.dbs.payment.payment_order_integration_outbound.api.PaymentOrderIntegrationOutboundApi;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.CancelResponse;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutRequestBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutResponseBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostRequestBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostResponseBody;
 import lombok.RequiredArgsConstructor;
 import net.trexis.experts.payments.service.PaymentOrdersService;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +27,8 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     }
 
     @Override
-    public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+    public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(
+            PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         String externalUserId = null;
         if(securityContextUtil.getOriginatingUserJwt().isPresent()){
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();

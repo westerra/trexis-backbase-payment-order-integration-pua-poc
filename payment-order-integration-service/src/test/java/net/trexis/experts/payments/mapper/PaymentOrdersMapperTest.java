@@ -1,11 +1,10 @@
 package net.trexis.experts.payments.mapper;
 
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.Schedule;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostRequestBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.Schedule;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.ZoneId;

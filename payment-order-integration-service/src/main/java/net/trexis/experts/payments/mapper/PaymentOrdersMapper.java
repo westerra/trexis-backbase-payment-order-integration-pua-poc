@@ -1,6 +1,6 @@
 package net.trexis.experts.payments.mapper;
 
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.PaymentOrdersPostRequestBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostRequestBody;
 import com.finite.api.commons.Utilities.DateUtilities;
 import io.swagger.codegen.v3.service.exception.BadRequestException;
 import lombok.extern.slf4j.Slf4j;

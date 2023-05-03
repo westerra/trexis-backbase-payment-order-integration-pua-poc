@@ -1,1 +1,1 @@
-mvn com.backbase.oss:blade-maven-plugin:4.20.0:run
+mvn com.backbase.oss:blade-maven-plugin:4.21.0:run
