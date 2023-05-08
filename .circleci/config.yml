@@ -11,7 +11,7 @@ orbs:
 jobs:
   veracode_scan:
     docker:
-      - image: image: cimg/openjdk:17.0.0
+      - image: cimg/openjdk:17.0.0
     parameters:
       VERACODE_APP_NAME:
         description: |
