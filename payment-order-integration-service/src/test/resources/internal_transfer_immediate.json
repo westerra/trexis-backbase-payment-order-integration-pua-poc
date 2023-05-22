@@ -20,11 +20,7 @@
   },
   "batchBooking": false,
   "instructionPriority": "NORM",
-  "requestedExecutionDate": {
-    "year": 2022,
-    "month": 6,
-    "day": 23
-  },
+  "requestedExecutionDate": "2022-06-23",
   "paymentMode": "SINGLE",
   "paymentType": "INTERNAL_TRANSFER",
   "transferTransactionInformation": {

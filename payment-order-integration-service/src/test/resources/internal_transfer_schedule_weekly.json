@@ -21,22 +21,14 @@
   },
   "batchBooking": false,
   "instructionPriority": "NORM",
-  "requestedExecutionDate": {
-    "year": 2022,
-    "month": 6,
-    "day": 24
-  },
+  "requestedExecutionDate": "2022-06-24",
   "paymentMode": "RECURRING",
   "paymentType": "INTERNAL_TRANSFER",
   "schedule": {
     "transferFrequency": "WEEKLY",
     "on": 6,
-    "startDate": {
-      "year": 2022,
-      "month": 6,
-      "day": 24
-    },
-    "every": "_1"
+    "startDate": "2022-06-24",
+    "every": "1"
   },
   "transferTransactionInformation": {
     "instructedAmount": {
