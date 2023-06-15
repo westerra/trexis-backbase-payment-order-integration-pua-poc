@@ -1,6 +1,7 @@
 version: 2.1
 
 orbs:
+  git-shallow-clone: guitarrapc/git-shallow-clone@2.5.0
   aws-eks: circleci/aws-eks@1.1.0
   kubernetes: circleci/kubernetes@0.12.0
   aws-cli: circleci/aws-cli@2.0.3
@@ -87,7 +88,10 @@ jobs:
         type: env_var_name
     steps:
       - gh/setup
-      - gh/clone
+      - git-shallow-clone/checkout_advanced:
+          keyscan_github: true 
+          clone_options: --depth 5 
+#      - gh/clone
       - run:
           command: |
             PR_STATUS=$(gh pr view --json state | jq -r .state)
