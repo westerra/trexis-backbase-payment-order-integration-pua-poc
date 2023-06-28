@@ -66,7 +66,7 @@ public class PaymentOrdersService {
     };
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
-        log.debug("BB Payment Request {} ", paymentOrdersPostRequestBody);
+        log.info("BB Payment Request {} ", paymentOrdersPostRequestBody);
         if (rejectRecurringStartingTodayEnabled &&
                 paymentOrdersPostRequestBody.getPaymentMode() == PaymentModeEnum.RECURRING &&
                 LocalDate.now(ZoneId.of(zoneId)).isEqual(paymentOrdersPostRequestBody.getRequestedExecutionDate())) {
@@ -91,21 +91,24 @@ public class PaymentOrdersService {
         try {
             var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, finiteConfiguration, zoneId);
 
-            log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
+            log.info("Sending Payload to Finite Exchange {}", exchangeTransaction);
 
             var exchangeTransactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
-            log.debug("Payment with result {}", exchangeTransactionResult.toString());
+            if(exchangeTransactionResult!=null) {
+               log.info("Payment with result exchangeTransactionResult {}", exchangeTransactionResult.toString());
+            }
             if (exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
                 throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             }
-
+            log.info("Create payment order status with {}", paymentOrdersPostRequestBody.toString());
             var paymentOrderStatus =
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody, zoneId);
             //Send refresh request on exchange.
+
+            log.info("Trigger ingestion with {}", paymentOrderStatus.toString());
             if (paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
                 this.triggerIngestion(externalUserId, List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
-
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
