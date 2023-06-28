@@ -103,7 +103,10 @@ public class PaymentOrdersService {
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody, zoneId);
             //Send refresh request on exchange.
             if (paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
-                this.triggerIngestion(externalUserId, List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
+                this.triggerIngestion(externalUserId,
+                        paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()!=null ?
+                                List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()) :
+                                List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId()));
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
@@ -145,7 +148,10 @@ public class PaymentOrdersService {
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody, zoneId);
             //Send refresh request on exchange.
             if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
-                this.triggerIngestion(externalUserId, List.of(putRequestBody.getOriginatorAccount().getArrangementId(), putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
+                this.triggerIngestion(externalUserId,
+                        putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()!=null ?
+                                List.of(putRequestBody.getOriginatorAccount().getArrangementId(), putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()) :
+                                List.of(putRequestBody.getOriginatorAccount().getArrangementId()));
             }
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
