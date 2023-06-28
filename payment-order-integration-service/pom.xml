@@ -113,6 +113,11 @@
             <groupId>net.trexis.experts.specs</groupId>
             <artifactId>ingestion-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>net.trexis.experts.specs</groupId>
+            <artifactId>backbase-api</artifactId>
+        </dependency>
+
 
         <!-- MISC -->
         <dependency>
