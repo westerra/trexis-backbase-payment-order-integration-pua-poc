@@ -1,9 +1,7 @@
 package net.trexis.experts.payments.service;
 
-import com.backbase.buildingblocks.presentation.errors.NotFoundException;
 import com.backbase.dbs.arrangement.arrangement_manager.api.client.v2.ArrangementsApi;
 import com.backbase.dbs.arrangement.arrangement_manager.v2.model.AccountArrangementItem;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.AccountArrangementItems;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.CancelResponse;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.CounterpartyAccount;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.Identification;
@@ -18,7 +16,6 @@ import com.finite.api.ExchangeApi;
 import com.finite.api.model.ExchangeTransactionResult;
 
 import java.time.ZoneId;
-import java.util.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +30,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -41,6 +42,8 @@ import java.util.concurrent.Executor;
 public class PaymentOrdersService {
     public static final String XTRACE = "xtrace";
     public static final String INTRABANK_TRANSFER = "INTRABANK_TRANSFER";
+    public static final String ARRANGEMENT_ID_FORMATTER = "%010d";
+    public static final String PRODUCT_ID_FORMATTER = "-S-0";
     private final ExchangeApi exchangeApi;
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
@@ -117,8 +120,8 @@ public class PaymentOrdersService {
                         getArrangementIdFromExternalArrangementId(paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getIdentification());
                 this.triggerIngestion(externalUserId,
                         counterpartyAccountArrangementId != null ?
-                        List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()) :
-                        List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId()));
+                                List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), counterpartyAccountArrangementId) :
+                                List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId()));
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
@@ -148,9 +151,9 @@ public class PaymentOrdersService {
     private String getArrangementIdFromExternalArrangementId(Identification identification) {
         // make account number to external arrangement id. 120521 -> 0000120521-S-0 , 1003 -> 0000001003-S-0
         try {
-            String externalArrangementId = String.format("%010d", Integer.parseInt(identification.getIdentification())).concat("-S-0");
+            String externalArrangementId = String.format(ARRANGEMENT_ID_FORMATTER,Integer.parseInt(identification.getIdentification())).concat(PRODUCT_ID_FORMATTER);
             List<AccountArrangementItem> arrangementElements = arrangementsApi.getArrangements(null, new ArrayList<>(), new ArrayList<>(Arrays.asList(externalArrangementId))).getArrangementElements();
-            return arrangementElements!=null || arrangementElements.size()==0 ? null : arrangementElements.get(0).getId();
+            return arrangementElements==null || arrangementElements.size()==0 ? null : arrangementElements.get(0).getId();
         } catch (RuntimeException ex) {
             log.error("Exception while getting arrangement details for identification: {} : {}", identification, ex);
             return null;
