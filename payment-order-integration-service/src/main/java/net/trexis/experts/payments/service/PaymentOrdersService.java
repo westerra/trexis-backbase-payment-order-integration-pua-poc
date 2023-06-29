@@ -1,7 +1,5 @@
 package net.trexis.experts.payments.service;
 
-import com.backbase.dbs.arrangement.arrangement_manager.api.client.v2.ArrangementsApi;
-import com.backbase.dbs.arrangement.arrangement_manager.v2.model.AccountArrangementItem;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.CancelResponse;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.CounterpartyAccount;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.Identification;
@@ -16,7 +14,7 @@ import com.finite.api.ExchangeApi;
 import com.finite.api.model.ExchangeTransactionResult;
 
 import java.time.ZoneId;
-
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.finite.FiniteConfiguration;
@@ -30,10 +28,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -42,12 +37,9 @@ import java.util.concurrent.Executor;
 public class PaymentOrdersService {
     public static final String XTRACE = "xtrace";
     public static final String INTRABANK_TRANSFER = "INTRABANK_TRANSFER";
-    public static final String ARRANGEMENT_ID_FORMATTER = "%010d";
-    public static final String PRODUCT_ID_FORMATTER = "-S-0";
     private final ExchangeApi exchangeApi;
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
-    private final ArrangementsApi arrangementsApi;
 
     @Value("${rejectRecurringStartingToday.enabled:false}")
     private boolean rejectRecurringStartingTodayEnabled;
@@ -74,7 +66,7 @@ public class PaymentOrdersService {
     };
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
-        log.info("BB Payment Request {} ", paymentOrdersPostRequestBody);
+        log.debug("BB Payment Request {} ", paymentOrdersPostRequestBody);
         if (rejectRecurringStartingTodayEnabled &&
                 paymentOrdersPostRequestBody.getPaymentMode() == PaymentModeEnum.RECURRING &&
                 LocalDate.now(ZoneId.of(zoneId)).isEqual(paymentOrdersPostRequestBody.getRequestedExecutionDate())) {
@@ -99,29 +91,21 @@ public class PaymentOrdersService {
         try {
             var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(paymentOrdersPostRequestBody, finiteConfiguration, zoneId);
 
-            log.info("Sending Payload to Finite Exchange {}", exchangeTransaction);
+            log.debug("Sending Payload to Finite Exchange {}", exchangeTransaction);
 
             var exchangeTransactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
-            if(exchangeTransactionResult!=null) {
-               log.info("Payment with result exchangeTransactionResult {}", exchangeTransactionResult.toString());
-            }
+            log.debug("Payment with result {}", exchangeTransactionResult.toString());
             if (exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
                 throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             }
-            log.info("Create payment order status with {}", paymentOrdersPostRequestBody.toString());
+
             var paymentOrderStatus =
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody, zoneId);
             //Send refresh request on exchange.
-
-            log.info("Trigger ingestion with {}", paymentOrderStatus.toString());
             if (paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
-                var counterpartyAccountArrangementId = paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId() != null ? paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId() :
-                        getArrangementIdFromExternalArrangementId(paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getIdentification());
-                this.triggerIngestion(externalUserId,
-                        counterpartyAccountArrangementId != null ?
-                                List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), counterpartyAccountArrangementId) :
-                                List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId()));
+                this.triggerIngestion(externalUserId, List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
+
             }
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
             paymentOrdersPostResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
@@ -148,18 +132,6 @@ public class PaymentOrdersService {
         }
     }
 
-    private String getArrangementIdFromExternalArrangementId(Identification identification) {
-        // make account number to external arrangement id. 120521 -> 0000120521-S-0 , 1003 -> 0000001003-S-0
-        try {
-            String externalArrangementId = String.format(ARRANGEMENT_ID_FORMATTER,Integer.parseInt(identification.getIdentification())).concat(PRODUCT_ID_FORMATTER);
-            List<AccountArrangementItem> arrangementElements = arrangementsApi.getArrangements(null, new ArrayList<>(), new ArrayList<>(Arrays.asList(externalArrangementId))).getArrangementElements();
-            return arrangementElements==null || arrangementElements.size()==0 ? null : arrangementElements.get(0).getId();
-        } catch (RuntimeException ex) {
-            log.error("Exception while getting arrangement details for identification: {} : {}", identification, ex);
-            return null;
-        }
-    }
-
     public PaymentOrderPutResponseBody updatePaymentOrder(String exchangeId, PaymentOrderPutRequestBody putRequestBody, String externalUserId) {
         try {
             log.debug("BB Payment Request {}", putRequestBody);
@@ -176,7 +148,7 @@ public class PaymentOrdersService {
                     PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(putRequestBody, zoneId);
             //Send refresh request on exchange.
             if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
-              this.triggerIngestion(externalUserId, List.of(putRequestBody.getOriginatorAccount().getArrangementId(), putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
+                this.triggerIngestion(externalUserId, List.of(putRequestBody.getOriginatorAccount().getArrangementId(), putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId()));
             }
             var paymentOrderPutResponseBody = new PaymentOrderPutResponseBody();
             paymentOrderPutResponseBody.setBankReferenceId(exchangeTransactionResult.getExchangeTransactionId());
@@ -204,6 +176,7 @@ public class PaymentOrdersService {
         try {
             log.debug("Cancelling transfer with exchange id {}", bankReferenceId);
             ExchangeTransactionResult exchangeTransactionResult = exchangeApi.deleteExchangeTransaction(bankReferenceId, null, null);
+            log.debug("exchangeTransactionResult"+ exchangeTransactionResult);
             if(exchangeTransactionResult.getStatus()!=null && Boolean.valueOf(exchangeTransactionResult.getStatus())){
                 isAccepted = Boolean.TRUE;
             } else {
