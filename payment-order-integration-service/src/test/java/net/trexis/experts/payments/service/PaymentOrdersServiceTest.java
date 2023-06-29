@@ -1,5 +1,6 @@
 package net.trexis.experts.payments.service;
 
+import com.backbase.dbs.arrangement.arrangement_manager.api.client.v2.ArrangementsApi;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.CancelResponse;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutRequestBody;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutResponseBody;
@@ -40,6 +41,7 @@ class PaymentOrdersServiceTest {
 
     private ExchangeApi exchangeApi = mock(ExchangeApi.class);
     private IngestionApi ingestionApi = mock(IngestionApi.class);
+    private ArrangementsApi arrangementsApi = mock(ArrangementsApi.class);
     private FiniteConfiguration finiteConfiguration = new FiniteConfiguration();
 
     private TestUtilities testUtilities = new TestUtilities();
@@ -52,7 +54,7 @@ class PaymentOrdersServiceTest {
 
     @Test
     void postPaymentOrdersInternalTransferImmediateHappyPath() throws IOException {
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
 
@@ -67,7 +69,7 @@ class PaymentOrdersServiceTest {
     }
     @Test
     void postPaymentOrdersInternalTransferImmediateUnHappyPath() throws IOException {
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
 
@@ -87,7 +89,7 @@ class PaymentOrdersServiceTest {
         paymentFrequencies.add(weeklyFrequency);
         finiteConfiguration.setPaymentFrequencies(paymentFrequencies);
 
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_schedule_weekly.json");
 
@@ -110,7 +112,7 @@ class PaymentOrdersServiceTest {
         paymentFrequencies.add(weeklyFrequency);
         finiteConfiguration.setPaymentFrequencies(paymentFrequencies);
 
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         String rejectionMessage = "The start date cannot be today's date. Please choose a future date.";
 
@@ -129,7 +131,7 @@ class PaymentOrdersServiceTest {
     @Test
     void postPaymentOrdersInternalTransfer_truncatesReasonCodeAbove4Characters() throws IOException {
         // common setup
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
 
@@ -156,7 +158,7 @@ class PaymentOrdersServiceTest {
     @Test
     void postPaymentOrdersInternalTransfer_truncatesReasonTextAbove35Characters() throws IOException {
         // common setup
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("internal_transfer_immediate.json");
 
@@ -190,7 +192,7 @@ class PaymentOrdersServiceTest {
         paymentFrequencies.add(weeklyFrequency);
         finiteConfiguration.setPaymentFrequencies(paymentFrequencies);
 
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrdersPostRequestBody paymentOrdersPostRequestBody = testUtilities.getPaymentOrderPost("intrabank_transfer_recurring.json");
 
@@ -215,7 +217,7 @@ class PaymentOrdersServiceTest {
 
     @Test
     void updatePaymentOrderHappyPath() throws IOException {
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
 
@@ -229,7 +231,7 @@ class PaymentOrdersServiceTest {
     }
     @Test
     void updatePaymentOrderUnHappyPath() throws IOException {
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
 
@@ -244,7 +246,7 @@ class PaymentOrdersServiceTest {
     @Test
     void updatePaymentOrder_truncatesReasonCodeAbove4Characters() throws IOException {
         // common setup
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
 
@@ -271,7 +273,7 @@ class PaymentOrdersServiceTest {
     @Test
     void updatePaymentOrder_truncatesReasonTextAbove35Characters() throws IOException {
         // common setup
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         PaymentOrderPutRequestBody paymentOrderPutRequestBody = testUtilities.getPaymentOrderPut("internal_transfer_immediate.json");
 
@@ -298,7 +300,7 @@ class PaymentOrdersServiceTest {
 
     @Test
     void cancelPaymentOrderHappyPath() {
-        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration);
+        PaymentOrdersService paymentOrdersService = new PaymentOrdersService(exchangeApi, ingestionApi, finiteConfiguration, arrangementsApi);
         ReflectionTestUtils.setField(paymentOrdersService, "zoneId", zoneId);
         ExchangeTransactionResult exchangeTransactionResult = testUtilities.getExchangeTransactionResult("true", "Well Done", "FakeId");
         when(exchangeApi.deleteExchangeTransaction(anyString(), isNull(), isNull())).thenReturn(exchangeTransactionResult);
