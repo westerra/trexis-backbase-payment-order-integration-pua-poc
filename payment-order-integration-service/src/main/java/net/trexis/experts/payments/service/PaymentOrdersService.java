@@ -146,12 +146,10 @@ public class PaymentOrdersService {
     }
 
     private String getArrangementIdFromExternalArrangementId(Identification identification) {
-        if(identification == null || identification.getIdentification() == null) {
-            return null;
-        }
-        // make account number to external arrangement id. 120521 -> 0000120521-S-00 , 1003 -> 0000001003-S-00
+        // make account number to external arrangement id. 120521 -> 0000120521-S-0 , 1003 -> 0000001003-S-0
         try {
-            List<AccountArrangementItem> arrangementElements = arrangementsApi.getArrangements(null, new ArrayList<>(), new ArrayList<>(Arrays.asList(String.format("%010d", identification.getIdentification()).concat("-S-00")  ))).getArrangementElements();
+            String externalArrangementId = String.format("%010d", Integer.parseInt(identification.getIdentification())).concat("-S-0");
+            List<AccountArrangementItem> arrangementElements = arrangementsApi.getArrangements(null, new ArrayList<>(), new ArrayList<>(Arrays.asList(externalArrangementId))).getArrangementElements();
             return arrangementElements!=null || arrangementElements.size()==0 ? null : arrangementElements.get(0).getId();
         } catch (RuntimeException ex) {
             log.error("Exception while getting arrangement details for identification: {} : {}", identification, ex);
