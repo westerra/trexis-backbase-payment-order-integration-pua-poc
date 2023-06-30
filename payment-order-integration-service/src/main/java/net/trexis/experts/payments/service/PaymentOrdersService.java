@@ -206,6 +206,7 @@ public class PaymentOrdersService {
         try {
             log.debug("Cancelling transfer with exchange id {}", bankReferenceId);
             ExchangeTransactionResult exchangeTransactionResult = exchangeApi.deleteExchangeTransaction(bankReferenceId, null, null);
+            log.debug("exchangeTransactionResult"+ exchangeTransactionResult);
             if(exchangeTransactionResult.getStatus()!=null && Boolean.valueOf(exchangeTransactionResult.getStatus())){
                 isAccepted = Boolean.TRUE;
             } else {

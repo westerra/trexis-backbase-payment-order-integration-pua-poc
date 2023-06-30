@@ -14,7 +14,6 @@ import com.finite.api.model.ExchangeTransactionResult;
 import java.time.LocalDate;
 import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
-import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.payments.utilities.TestUtilities;
 import org.junit.jupiter.api.BeforeAll;
