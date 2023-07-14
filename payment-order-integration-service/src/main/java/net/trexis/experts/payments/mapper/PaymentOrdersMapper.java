@@ -24,6 +24,7 @@ public class PaymentOrdersMapper {
     public static final String CACHE_EXTERNAL_ID = "id";
 
     public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, FiniteConfiguration finiteConfiguration, String zoneId) {
+        log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersMapper.createPaymentsOrders start $$$$$$$$$$$$$$$$$$$$$$$$$$$");
         var exchangeTransaction = new ExchangeTransaction();
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
@@ -77,6 +78,7 @@ public class PaymentOrdersMapper {
             schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString()));
             exchangeTransaction.setRecurringSchedule(schedule);
         }
+        log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersMapper.createPaymentsOrders end $$$$$$$$$$$$$$$$$$$$$$$$$$$");
         return exchangeTransaction;
     }
 
