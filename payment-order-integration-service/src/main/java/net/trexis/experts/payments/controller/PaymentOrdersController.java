@@ -7,8 +7,6 @@ import com.backbase.dbs.payment.payment_order_integration_outbound.model.Payment
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutResponseBody;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostRequestBody;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostResponseBody;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import net.trexis.experts.payments.service.PaymentOrdersService;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +29,6 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     @Override
     public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(
             PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
-        log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersController.postPaymentOrders start $$$$$$$$$$$$$$$$$$$$$$$$$$$");
-        //justForDebugging(paymentOrdersPostRequestBody, null);
         String externalUserId = null;
         if(securityContextUtil.getOriginatingUserJwt().isPresent()){
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();
@@ -43,9 +39,6 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
 
     @Override
     public ResponseEntity<PaymentOrderPutResponseBody> putPaymentOrder(String bankReferenceId, PaymentOrderPutRequestBody paymentOrderPutRequestBody) {
-        log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersController.putPaymentOrder start $$$$$$$$$$$$$$$$$$$$$$$$$$$");
-        log.error("$$$$$$ bankRefID: " + bankReferenceId);
-        //justForDebugging(null, paymentOrderPutRequestBody);
         String externalUserId = null;
         if(securityContextUtil.getOriginatingUserJwt().isPresent()){
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();
@@ -53,19 +46,5 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
 
         // TODO: find out whether bankReferenceId is the same as Finite exchangeId. If not, we'll need to do some type of lookup
         return ResponseEntity.ok(paymentOrdersService.updatePaymentOrder(bankReferenceId, paymentOrderPutRequestBody, externalUserId));
-    }
-
-    private static String justForDebugging(PaymentOrdersPostRequestBody request, PaymentOrderPutRequestBody paymentOrderPutRequestBody) {
-        ObjectMapper om = new ObjectMapper();
-        String json = null;
-        try {
-            if (null != request) json = om.writeValueAsString(request);
-            else json = om.writeValueAsString(paymentOrderPutRequestBody);
-            log.error("Request body::::::::");
-            log.error(json);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        return json;
     }
 }

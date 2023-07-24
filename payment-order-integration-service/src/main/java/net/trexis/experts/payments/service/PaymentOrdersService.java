@@ -73,12 +73,10 @@ public class PaymentOrdersService {
     };
 
     public PaymentOrdersPostResponseBody postPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
-        log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersService.createPaymentsOrders start $$$$$$$$$$$$$$$$$$$$$$$$$$$");
         log.debug("BB Payment Request {} ", paymentOrdersPostRequestBody);
         if (rejectRecurringStartingTodayEnabled &&
                 paymentOrdersPostRequestBody.getPaymentMode() == PaymentModeEnum.RECURRING &&
                 LocalDate.now(ZoneId.of(zoneId)).isEqual(paymentOrdersPostRequestBody.getRequestedExecutionDate())) {
-            log.error("$$$$$$$$$$$$$$$$$$$$$$$ recurring with start date today $$$$$$$$$$$$$$$$$$$$$$$$$$$");
             return new PaymentOrdersPostResponseBody()
                     .bankStatus(PaymentOrderStatus.REJECTED.getValue())
                     .reasonText(rejectRecurringStartingTodayMessage);
@@ -104,11 +102,8 @@ public class PaymentOrdersService {
 
             var exchangeTransactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
-            log.error("$$$$$$$$$$$$  exchangeTransactionResult: " + exchangeTransactionResult);
             log.debug("Payment with result {}", exchangeTransactionResult.toString());
             if (exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
-                log.error("$$$$$$$$$$$$ finite error $$$$$$$$$$$$$$$$$$$$$$$$$");
-                // TODO exchangeTransactionResult.getReason() -> NPE
                 throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             }
 
@@ -135,7 +130,7 @@ public class PaymentOrdersService {
             Optional.ofNullable(exchangeTransactionResult.getReason())
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
-            log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersService.createPaymentsOrders end $$$$$$$$$$$$$$$$$$$$$$$$$$$");
+
             return paymentOrdersPostResponseBody;
 
         } catch (RuntimeException ex) {
@@ -162,7 +157,6 @@ public class PaymentOrdersService {
     }
 
     public PaymentOrderPutResponseBody updatePaymentOrder(String exchangeId, PaymentOrderPutRequestBody putRequestBody, String externalUserId) {
-        log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersService.updatePaymentOrder start $$$$$$$$$$$$$$$$$$$$$$$$$$$");
         try {
             log.debug("BB Payment Request {}", putRequestBody);
             var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrders(putRequestBody, finiteConfiguration, zoneId);
@@ -172,7 +166,6 @@ public class PaymentOrdersService {
                     exchangeApi.updateExchangeTransaction(exchangeId, exchangeTransaction, null, null);
             log.debug("Payment with result {}", exchangeTransactionResult.toString());
             if(exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
-                log.error("$$$$$$$$$$$$$$$$ finite error in put $$$$$$$$$$$$$$$$$$$$$$");
                 throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             }
             var paymentOrderStatus =
@@ -195,7 +188,6 @@ public class PaymentOrdersService {
                     .map(rawValue -> this.truncateTo(rawValue, 4))
                     .ifPresent(paymentOrderPutResponseBody::reasonCode);
             paymentOrderPutResponseBody.setReasonText(getBBCompatibleReason(exchangeTransactionResult.getReason()));
-            log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersService.updatePaymentOrder end $$$$$$$$$$$$$$$$$$$$$$$$$$$");
             return paymentOrderPutResponseBody;
 
         } catch (RuntimeException ex) {
