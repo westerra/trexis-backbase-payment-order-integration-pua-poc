@@ -32,7 +32,7 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(
             PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersController.postPaymentOrders start $$$$$$$$$$$$$$$$$$$$$$$$$$$");
-        //justForDebugging(paymentOrdersPostRequestBody, null);
+        justForDebugging(paymentOrdersPostRequestBody, null);
         String externalUserId = null;
         if(securityContextUtil.getOriginatingUserJwt().isPresent()){
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();
@@ -45,7 +45,7 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     public ResponseEntity<PaymentOrderPutResponseBody> putPaymentOrder(String bankReferenceId, PaymentOrderPutRequestBody paymentOrderPutRequestBody) {
         log.error("$$$$$$$$$$$$$$$$$$$$$$$ PaymentOrdersController.putPaymentOrder start $$$$$$$$$$$$$$$$$$$$$$$$$$$");
         log.error("$$$$$$ bankRefID: " + bankReferenceId);
-        //justForDebugging(null, paymentOrderPutRequestBody);
+        justForDebugging(null, paymentOrderPutRequestBody);
         String externalUserId = null;
         if(securityContextUtil.getOriginatingUserJwt().isPresent()){
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();
