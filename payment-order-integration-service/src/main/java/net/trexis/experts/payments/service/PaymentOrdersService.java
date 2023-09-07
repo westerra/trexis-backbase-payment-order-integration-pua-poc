@@ -101,7 +101,7 @@ public class PaymentOrdersService {
 
             var exchangeTransactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
-            log.debug("Payment with result {}", exchangeTransactionResult.toString());
+            log.debug("Payment with result {}", exchangeTransactionResult);
             if (exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
                 throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             }
@@ -112,7 +112,7 @@ public class PaymentOrdersService {
             if (paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
                 var counterpartyAccountArrangementId = paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId() != null ? paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId() :
                         getArrangementIdByIdentification(paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getIdentification());
-                log.debug("counterpartyAccountArrangementId : {}", counterpartyAccountArrangementId.toString());
+                log.debug("counterpartyAccountArrangementId : {}", counterpartyAccountArrangementId);
                 this.triggerIngestion(externalUserId,
                         counterpartyAccountArrangementId != null ?
                                 List.of(paymentOrdersPostRequestBody.getOriginatorAccount().getArrangementId(), counterpartyAccountArrangementId) :
@@ -162,7 +162,7 @@ public class PaymentOrdersService {
 
             var exchangeTransactionResult =
                     exchangeApi.updateExchangeTransaction(exchangeId, exchangeTransaction, null, null);
-            log.debug("Payment with result {}", exchangeTransactionResult.toString());
+            log.debug("Payment with result {}", exchangeTransactionResult);
             if(exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
                 throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
             }
@@ -172,7 +172,7 @@ public class PaymentOrdersService {
             if(paymentOrderStatus.equals(PaymentOrderStatus.PROCESSED)) {
                 var counterpartyAccountArrangementId = putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId() != null ? putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getArrangementId() :
                         getArrangementIdByIdentification(putRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getIdentification());
-                log.debug("counterpartyAccountArrangementId : {}", counterpartyAccountArrangementId.toString());
+                log.debug("counterpartyAccountArrangementId : {}", counterpartyAccountArrangementId);
                 this.triggerIngestion(externalUserId,
                         counterpartyAccountArrangementId != null ?
                                 List.of(putRequestBody.getOriginatorAccount().getArrangementId(), counterpartyAccountArrangementId) :
