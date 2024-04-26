@@ -199,7 +199,7 @@ jobs:
 
   deploy:
     machine:
-      image: ubuntu-2004:202201-02
+      image: ubuntu-2204:2024.01.2
     resource_class: large
     parameters:
       cluster-name:
