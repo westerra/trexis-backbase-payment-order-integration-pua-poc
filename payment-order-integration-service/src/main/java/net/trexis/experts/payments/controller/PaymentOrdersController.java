@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -20,6 +22,8 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     private final PaymentOrdersService paymentOrdersService;
     private final SecurityContextUtil securityContextUtil;
 
+    private static final String WESTERRA_CREATE_NEW_ACCOUNT = "westerraCreateNewAccount";
+    private static final String YES = "yes";
 
     @Override
     public ResponseEntity<CancelResponse> postCancelPaymentOrder(String bankReferenceId) {
@@ -30,11 +34,22 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(
             PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         String externalUserId = null;
-        if(securityContextUtil.getOriginatingUserJwt().isPresent()){
-            externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();
+
+        // Extracting additions map and initialize createNewAccountFlag safely
+        Map<String, String> additions = paymentOrdersPostRequestBody.getAdditions();
+        String createNewAccountFlag = additions != null ? additions.getOrDefault(WESTERRA_CREATE_NEW_ACCOUNT, "NO") : "NO";
+
+        // Attempt to fetch external user ID from JWT if present
+        if (securityContextUtil.getOriginatingUserJwt().isPresent()) {
+            externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().orElse(null);
         }
 
-        return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
+        // Decision-making based on the createNewAccountFlag
+        if ("YES".equalsIgnoreCase(createNewAccountFlag.trim())) {
+            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
+        } else {
+            return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
+        }
     }
 
     @Override
