@@ -31,6 +31,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -272,6 +274,20 @@ public class PaymentOrdersService {
         return input.length() > maxLength
                 ? input.substring(0, maxLength)
                 : input;
+    }
+
+    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
+        PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
+        Map<String, String> addition = new HashMap<>();
+
+        addition.put("AccountStatus", "Created");
+        addition.put("TransferStatus", "SUCCESS");
+
+        paymentOrdersPostResponseBody.setAdditions(addition);
+
+        log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody);
+
+        return paymentOrdersPostResponseBody;
     }
 }
 
