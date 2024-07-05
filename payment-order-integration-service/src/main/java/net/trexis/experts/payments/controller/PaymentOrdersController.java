@@ -36,7 +36,7 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
         String externalUserId = null;
 
         // Extracting additions map and initialize createNewAccountFlag safely
-        Map<String, String> additions = paymentOrdersPostRequestBody.getAdditions();
+        Map<String, String> additions = paymentOrdersPostRequestBody.getOriginatorAccount().getAdditions();
         String createNewAccountFlag = additions != null ? additions.getOrDefault(WESTERRA_CREATE_NEW_ACCOUNT, "NO") : "NO";
 
         // Attempt to fetch external user ID from JWT if present
