@@ -131,6 +131,12 @@ public class PaymentOrdersService {
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
 
+            //trigger ingestion for user to update accountHolder name
+            String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
+            if (backbaseUsername != null) {
+                ingestionApi.getStartEntityIngestion(backbaseUsername, true);
+            }
+
             return paymentOrdersPostResponseBody;
 
         } catch (RuntimeException ex) {
