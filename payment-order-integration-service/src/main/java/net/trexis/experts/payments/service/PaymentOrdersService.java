@@ -280,7 +280,7 @@ public class PaymentOrdersService {
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
         Map<String, String> addition = new HashMap<>();
 
-        addition.put("AccountStatus", "Created");
+        addition.put("AccountStatus", "Created account type "+paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getAccountType());
         addition.put("TransferStatus", "SUCCESS");
         addition.put("userExternalId",externalUserId);
 

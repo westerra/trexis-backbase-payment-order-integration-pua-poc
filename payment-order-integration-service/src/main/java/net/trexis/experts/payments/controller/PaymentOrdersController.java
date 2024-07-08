@@ -44,8 +44,10 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().orElse(null);
         }
 
+
+        String identification = paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getIdentification().getIdentification();
         // Decision-making based on the createNewAccountFlag
-        if ("YES".equalsIgnoreCase(createNewAccountFlag.trim())) {
+        if ("westerraCreateNewAccount".equalsIgnoreCase(identification)) {
             return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
         } else {
             return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
