@@ -298,14 +298,13 @@ public class PaymentOrdersService {
 
     private String getAccountCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         String strWesterraCreateAccount = paymentOrdersPostRequestBody.getTransferTransactionInformation()
-                .getCounterparty().getName();
+                .getPurposeOfPayment().getFreeText();
         return strWesterraCreateAccount.split("-")[0];
     }
 
     private String getProductCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
-        String strWesterraCreateAccount = paymentOrdersPostRequestBody.getTransferTransactionInformation()
-                .getCounterparty().getName();
-        return strWesterraCreateAccount.split("-")[2];
+        return paymentOrdersPostRequestBody.getTransferTransactionInformation()
+                .getPurposeOfPayment().getCode();
     }
 }
 
