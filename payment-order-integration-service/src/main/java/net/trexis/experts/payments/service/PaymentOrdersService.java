@@ -277,12 +277,12 @@ public class PaymentOrdersService {
     }
 
     public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
-        PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
+        var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
+        paymentOrdersPostResponseBody.setBankReferenceId("bankRefId");
+        paymentOrdersPostResponseBody.setBankStatus("Success");
 
         String accountCode =  getAccountCode(paymentOrdersPostRequestBody);
         String productCode  = getProductCode(paymentOrdersPostRequestBody);
-
-        paymentOrdersPostResponseBody.setBankStatus("Successfully created new account and funded  account for Account code "+accountCode);
 
         log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody );
 
