@@ -278,19 +278,13 @@ public class PaymentOrdersService {
 
     public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
-        Map<String, String> addition = new HashMap<>();
 
         String accountCode =  getAccountCode(paymentOrdersPostRequestBody);
         String productCode  = getProductCode(paymentOrdersPostRequestBody);
 
-        addition.put("AccountStatus", "Created account for product  "+productCode);
-        addition.put("TransferStatus", "Success");
-        addition.put("userExternalId",externalUserId);
-
-        paymentOrdersPostResponseBody.setAdditions(addition);
         paymentOrdersPostResponseBody.setBankStatus("Successfully created new account and funded  account for Account code "+accountCode);
 
-        log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody);
+        log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody );
 
         return paymentOrdersPostResponseBody;
     }
