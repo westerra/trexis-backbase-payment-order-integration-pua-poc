@@ -34,20 +34,31 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(
             PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         String externalUserId = null;
-
-        // Extracting additions map and initialize createNewAccountFlag safely
-        Map<String, String> additions = paymentOrdersPostRequestBody.getOriginatorAccount().getAdditions();
-        String createNewAccountFlag = additions != null ? additions.getOrDefault(WESTERRA_CREATE_NEW_ACCOUNT, "NO") : "NO";
-
         // Attempt to fetch external user ID from JWT if present
         if (securityContextUtil.getOriginatingUserJwt().isPresent()) {
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().orElse(null);
         }
 
+        // Extract counterparty name and split to get account code and creation flag
+        String counterpartyName = paymentOrdersPostRequestBody.getTransferTransactionInformation()
+                .getCounterparty().getName();
 
-        String identification = paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getIdentification().getIdentification();
+        // Check if the counterparty name contains "westerraCreateNewAccount"
+        String[] accountCodeAndCreateFlag = null;
+        if (counterpartyName.contains("westerraCreateNewAccount")) {
+            // Split the counterparty name to get the account code and the new account creation flag
+            accountCodeAndCreateFlag = counterpartyName.split("-");
+
+            // Check if the split result contains both the account code and the creation flag
+            if (accountCodeAndCreateFlag.length < 2) {
+                // Return a bad request response if the creation flag is missing
+                log.error("Invalid Request for new Account Creation");
+            }
+        }
+
+        String newAccountCreateFlag = accountCodeAndCreateFlag != null ? accountCodeAndCreateFlag[1] : null;
         // Decision-making based on the createNewAccountFlag
-        if ("westerraCreateNewAccount".equalsIgnoreCase(identification)) {
+        if ("westerraCreateNewAccount".equalsIgnoreCase(newAccountCreateFlag)) {
             return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
         } else {
             return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));

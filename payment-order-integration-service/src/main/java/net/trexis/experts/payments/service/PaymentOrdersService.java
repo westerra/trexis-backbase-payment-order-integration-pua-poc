@@ -280,15 +280,32 @@ public class PaymentOrdersService {
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
         Map<String, String> addition = new HashMap<>();
 
-        addition.put("AccountStatus", "Created account type "+paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getAccountType());
-        addition.put("TransferStatus", "SUCCESS");
+        String accountCode =  getAccountCode(paymentOrdersPostRequestBody);
+        String productCode  = getProductCode(paymentOrdersPostRequestBody);
+
+        addition.put("AccountStatus", "Created account for product  "+productCode);
+        addition.put("TransferStatus", "Success");
         addition.put("userExternalId",externalUserId);
 
         paymentOrdersPostResponseBody.setAdditions(addition);
+        paymentOrdersPostResponseBody.setBankStatus("Successfully created new account and funded  account for Account code "+accountCode);
 
         log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody);
 
         return paymentOrdersPostResponseBody;
+    }
+
+
+    private String getAccountCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        String strWesterraCreateAccount = paymentOrdersPostRequestBody.getTransferTransactionInformation()
+                .getCounterparty().getName();
+        return strWesterraCreateAccount.split("-")[0];
+    }
+
+    private String getProductCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        String strWesterraCreateAccount = paymentOrdersPostRequestBody.getTransferTransactionInformation()
+                .getCounterparty().getName();
+        return strWesterraCreateAccount.split("-")[2];
     }
 }
 
