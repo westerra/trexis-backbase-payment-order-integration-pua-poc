@@ -283,7 +283,7 @@ public class PaymentOrdersService {
     public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
         var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
         paymentOrdersPostResponseBody.setBankReferenceId("bankRefId");
-        paymentOrdersPostResponseBody.setBankStatus("Success");
+        paymentOrdersPostResponseBody.setBankStatus("PROCESSED");
 
         String accountCode =  getAccountCode(paymentOrdersPostRequestBody);
         String productCode  = getProductCode(paymentOrdersPostRequestBody);
@@ -293,13 +293,18 @@ public class PaymentOrdersService {
         Account  account = maptoAccount(paymentOrdersPostRequestBody);
         // call connector to create account
 
-        var accountResponse =  accountsApi.postAccount(account,"trace_account_create",null,null,true);
-        String productTypeCode  = accountResponse.getProduct().getType();
+        // TODO  will call mule create new account api when it's ready.
+        // var accountResponse = createNewAccount(account);
 
-        // on success of account creation initiate payment order for new account
+        // TODO on success of account creation initiate payment order for new account
+        // PaymentOrdersPostResponseBody paymentOrdersPostResponseBody1 = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
 
+        return paymentOrdersPostResponseBody;
+    }
+
+    private  PaymentOrdersPostResponseBody initiatePaymentOrderForNewAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, Account accountResponse, PaymentOrdersPostResponseBody paymentOrdersPostResponseBody) {
         try {
-            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrdersforNewAccount(paymentOrdersPostRequestBody,accountResponse,finiteConfiguration,zoneId);
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrdersforNewAccount(paymentOrdersPostRequestBody, accountResponse,finiteConfiguration,zoneId);
 
             log.debug("Initiate payment order for new account {}", exchangeTransaction);
 
@@ -344,6 +349,11 @@ public class PaymentOrdersService {
         }
     }
 
+    private Account createNewAccount(Account account) {
+        var accountResponse =  accountsApi.postAccount(account,"trace_account_create",null,null,true);
+        return accountResponse;
+    }
+
     private Account maptoAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         Account account = new Account();
         Product product = new Product();
@@ -357,9 +367,6 @@ public class PaymentOrdersService {
 
         return account;
     }
-
-
-
 
     private String getAccountCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         String strWesterraCreateAccount = paymentOrdersPostRequestBody.getTransferTransactionInformation()
