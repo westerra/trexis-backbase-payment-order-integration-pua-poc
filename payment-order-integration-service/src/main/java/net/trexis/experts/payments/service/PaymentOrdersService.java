@@ -12,11 +12,15 @@ import com.backbase.dbs.payment.payment_order_integration_outbound.model.Payment
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostResponseBody;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.SchemeName;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.TransferTransactionInformation;
+import com.finite.api.AccountsApi;
 import com.finite.api.ExchangeApi;
+import com.finite.api.model.Account;
 import com.finite.api.model.ExchangeTransactionResult;
 
 import java.time.ZoneId;
 import java.util.Optional;
+
+import com.finite.api.model.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.finite.FiniteConfiguration;
@@ -31,8 +35,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -49,6 +51,7 @@ public class PaymentOrdersService {
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
     private final ArrangementsApi arrangementsApi;
+    private final AccountsApi accountsApi;
 
     @Value("${rejectRecurringStartingToday.enabled:false}")
     private boolean rejectRecurringStartingTodayEnabled;
@@ -66,6 +69,7 @@ public class PaymentOrdersService {
 
     @Value("${timeZone.zoneId:America/Denver}")
     private String zoneId;
+
 
     Executor async = new Executor() {
         @Override
@@ -286,8 +290,75 @@ public class PaymentOrdersService {
 
         log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody );
 
-        return paymentOrdersPostResponseBody;
+        Account  account = maptoAccount(paymentOrdersPostRequestBody);
+        // call connector to create account
+
+        var accountResponse =  accountsApi.postAccount(account,"trace_account_create",null,null,true);
+        String productTypeCode  = accountResponse.getProduct().getType();
+
+        // on success of account creation initiate payment order for new account
+
+        try {
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrdersforNewAccount(paymentOrdersPostRequestBody,accountResponse,finiteConfiguration,zoneId);
+
+            log.debug("Initiate payment order for new account {}", exchangeTransaction);
+
+            var transactionResult =
+                    exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
+            log.debug("exchange transactionResult {}", transactionResult);
+
+            if (transactionResult == null) {
+                throw new PaymentOrdersServiceException().withMessage("Transaction result is null.");
+            }
+
+            if (StringUtils.isEmpty(transactionResult.getExchangeTransactionId())) {
+                String reason = transactionResult.getReason() != null ? transactionResult.getReason() : "Unknown reason";
+                throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(reason));
+            }
+
+            PaymentOrderStatus paymentsOrderStatusFromRequest =
+                    PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(paymentOrdersPostRequestBody, zoneId);
+
+            paymentOrdersPostResponseBody.setBankReferenceId(transactionResult.getExchangeTransactionId());
+            paymentOrdersPostResponseBody.setBankStatus(paymentsOrderStatusFromRequest.getValue());
+
+            // This field has a max of 4 characters
+            Optional.ofNullable(transactionResult.getStatus())
+                    .map(rawValue -> this.truncateTo(rawValue, 4))
+                    .ifPresent(paymentOrdersPostResponseBody::reasonCode);
+            // This field has a max of 35 characters
+            Optional.ofNullable(transactionResult.getReason())
+                    .map(rawValue -> this.truncateTo(rawValue, 35))
+                    .ifPresent(paymentOrdersPostResponseBody::setReasonText);
+
+            return paymentOrdersPostResponseBody;
+
+        } catch (RuntimeException ex) {
+            //Mark the payment order as rejected due to unknown submission error to core
+            log.error("Error while exchanging transaction: {}", ex);
+            paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
+            paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+            paymentOrdersPostResponseBody.setErrorDescription(getBBCompatibleErrorDescription(ex.getMessage()));
+            paymentOrdersPostResponseBody.setReasonText(getBBCompatibleReason(ex.getMessage()));
+            return paymentOrdersPostResponseBody;
+        }
     }
+
+    private Account maptoAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        Account account = new Account();
+        Product product = new Product();
+
+        String productCode = getProductCode(paymentOrdersPostRequestBody);
+        String customerCode = getAccountCode(paymentOrdersPostRequestBody);
+        product.setId(productCode);
+
+        account.setProduct(product);
+        account.setId(customerCode);
+
+        return account;
+    }
+
+
 
 
     private String getAccountCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
