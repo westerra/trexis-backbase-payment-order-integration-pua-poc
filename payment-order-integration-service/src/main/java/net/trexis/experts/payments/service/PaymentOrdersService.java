@@ -18,7 +18,7 @@ import com.finite.api.model.Account;
 import com.finite.api.model.ExchangeTransactionResult;
 
 import java.time.ZoneId;
-import java.util.Optional;
+import java.util.*;
 
 import com.finite.api.model.Product;
 import lombok.RequiredArgsConstructor;
@@ -34,9 +34,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -137,11 +134,7 @@ public class PaymentOrdersService {
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
 
-            //trigger ingestion for user to update accountHolder name
-            String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
-            if (backbaseUsername != null) {
-                ingestionApi.getStartEntityIngestion(backbaseUsername, true);
-            }
+            triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
 
             return paymentOrdersPostResponseBody;
 
@@ -153,6 +146,14 @@ public class PaymentOrdersService {
             paymentOrdersPostResponseBody.setErrorDescription(getBBCompatibleErrorDescription(ex.getMessage()));
             paymentOrdersPostResponseBody.setReasonText(getBBCompatibleReason(ex.getMessage()));
             return paymentOrdersPostResponseBody;
+        }
+    }
+
+    private void triggerIngestionWithBackbaseOwnershipInformation(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        //trigger ingestion for user to update accountHolder name
+        String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
+        if (backbaseUsername != null) {
+            ingestionApi.getStartEntityIngestion(backbaseUsername, true);
         }
     }
 
@@ -281,24 +282,27 @@ public class PaymentOrdersService {
     }
 
     public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
-        var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
-        paymentOrdersPostResponseBody.setBankReferenceId("bankRefId");
-        paymentOrdersPostResponseBody.setBankStatus("PROCESSED");
+        log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostRequestBody );
+        PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
+        try {
+            // Map request to account object
+            Account account = maptoAccount(paymentOrdersPostRequestBody);
 
-        String accountCode =  getAccountCode(paymentOrdersPostRequestBody);
-        String productCode  = getProductCode(paymentOrdersPostRequestBody);
+            // Call connector to create account
+            Account accountResponse = createNewAccount(account);
 
-        log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody );
+            if (accountResponse != null) {
+                log.debug("Account successfully created: {}", accountResponse);
+                 paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
 
-        Account  account = maptoAccount(paymentOrdersPostRequestBody);
-        // call connector to create account
-
-        // TODO  will call mule create new account api when it's ready.
-        // var accountResponse = createNewAccount(account);
-
-        // TODO on success of account creation initiate payment order for new account
-        // PaymentOrdersPostResponseBody paymentOrdersPostResponseBody1 = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
-
+               // trigger ingestion once transfer complete it
+                triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
+            } else {
+                log.error("Account creation failed for user {} and account  {} ",paymentOrdersPostRequestBody.getExternalUserId(),paymentOrdersPostRequestBody.getTransferTransactionInformation().getPurposeOfPayment().getCode());
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred while creating account and initiating payment orders: {}", e.getMessage(), e);
+        }
         return paymentOrdersPostResponseBody;
     }
 
@@ -350,8 +354,7 @@ public class PaymentOrdersService {
     }
 
     private Account createNewAccount(Account account) {
-        var accountResponse =  accountsApi.postAccount(account,"trace_account_create",null,null,true);
-        return accountResponse;
+        return accountsApi.postAccount(account,"trace_account_create",null,null,true);
     }
 
     private Account maptoAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
@@ -363,6 +366,7 @@ public class PaymentOrdersService {
         product.setId(productCode);
 
         account.setProduct(product);
+        // setting entity id in this
         account.setId(customerCode);
 
         return account;
