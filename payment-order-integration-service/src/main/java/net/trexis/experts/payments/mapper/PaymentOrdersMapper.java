@@ -146,7 +146,7 @@ public class PaymentOrdersMapper {
 
         String  accountCode = account.getId();
         String  newAccountId = account.getProduct().getId();
-        String arrangementNewAccount = accountCode+"-"+newAccountId;
+        String arrangementNewAccount = accountCode+ "-" + "S" + "-" + newAccountId;
         accountCreditor.setId(arrangementNewAccount);
         exchangeTransaction.setDebtor(accountDebtor);
         exchangeTransaction.setCreditor(accountCreditor);
