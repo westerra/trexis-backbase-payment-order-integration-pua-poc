@@ -122,9 +122,7 @@ public class PaymentOrdersMapper {
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
         exchangeTransaction.setAmount(new BigDecimal(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount()));
-
         exchangeTransaction.setExecutionDate(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().toString()));
-
 
         // set description for transaction
         /*
@@ -145,9 +143,11 @@ public class PaymentOrdersMapper {
         accountCreditor.setCreditorType("AccountCreditor");
 
         //TODO get this for account create response
-        String  arrangementNewAccount = "0003931753-S-5";
-        accountCreditor.setId(arrangementNewAccount);
 
+        String  accountCode = account.getId();
+        String  newAccountId = account.getProduct().getId();
+        String arrangementNewAccount = accountCode+"-"+newAccountId;
+        accountCreditor.setId(arrangementNewAccount);
         exchangeTransaction.setDebtor(accountDebtor);
         exchangeTransaction.setCreditor(accountCreditor);
 
