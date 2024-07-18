@@ -289,7 +289,7 @@ public class PaymentOrdersService {
     public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
         log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostRequestBody );
 
-        PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
+        var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
         try {
 
             if (!isAccountCreationEnabled) {
