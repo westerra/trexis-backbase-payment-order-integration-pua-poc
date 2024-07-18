@@ -296,6 +296,7 @@ public class PaymentOrdersService {
                 log.warn("Account creation is currently disabled.");
                 paymentOrdersPostResponseBody.setErrorDescription("Account creation is currently disabled.");
                 paymentOrdersPostResponseBody.setReasonText("Account Creation Has been Disabled please contact Westerra Support");
+                paymentOrdersPostResponseBody.setBankStatus("REJECTED");
                 return paymentOrdersPostResponseBody;
             }
 
@@ -324,6 +325,7 @@ public class PaymentOrdersService {
         } catch (Exception e) {
             log.error("Exception occurred while creating account and initiating payment orders: {}", e.getMessage(), e);
             paymentOrdersPostResponseBody.setErrorDescription("New Account creation failed");
+            paymentOrdersPostResponseBody.setBankStatus("REJECTED");
         }
         return paymentOrdersPostResponseBody;
     }
@@ -331,6 +333,7 @@ public class PaymentOrdersService {
     private void handleAccountCreationFailure(PaymentOrdersPostRequestBody requestBody, PaymentOrdersPostResponseBody responseBody) {
         log.error("Account creation failed for user {} and account {}", requestBody.getExternalUserId(), requestBody.getTransferTransactionInformation().getPurposeOfPayment().getCode());
         responseBody.setErrorDescription("New Account creation failed");
+        responseBody.setBankStatus("REJECTED");
     }
 
     private PaymentOrdersPostResponseBody handleTransactionError(PaymentOrdersPostResponseBody responseBody, RuntimeException ex) {
