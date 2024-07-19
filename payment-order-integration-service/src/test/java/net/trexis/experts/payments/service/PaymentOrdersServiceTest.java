@@ -41,7 +41,6 @@ class PaymentOrdersServiceTest {
     private ExchangeApi exchangeApi = mock(ExchangeApi.class);
     private IngestionApi ingestionApi = mock(IngestionApi.class);
     private ArrangementsApi arrangementsApi = mock(ArrangementsApi.class);
-
     private FiniteConfiguration finiteConfiguration = new FiniteConfiguration();
 
     private TestUtilities testUtilities = new TestUtilities();
