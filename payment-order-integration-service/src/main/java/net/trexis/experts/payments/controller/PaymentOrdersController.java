@@ -13,8 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -22,8 +20,6 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     private final PaymentOrdersService paymentOrdersService;
     private final SecurityContextUtil securityContextUtil;
 
-    private static final String WESTERRA_CREATE_NEW_ACCOUNT = "westerraCreateNewAccount";
-    private static final String YES = "yes";
 
     @Override
     public ResponseEntity<CancelResponse> postCancelPaymentOrder(String bankReferenceId) {
@@ -34,39 +30,11 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(
             PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         String externalUserId = null;
-        // Attempt to fetch external user ID from JWT if present
-        if (securityContextUtil.getOriginatingUserJwt().isPresent()) {
-            externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().orElse(null);
+        if(securityContextUtil.getOriginatingUserJwt().isPresent()){
+            externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().get();
         }
 
-        // Extract accoubt creation request data  name and split to get account code and creation flag
-        String checkIfNewAccountCreateRequest = null;
-        if (paymentOrdersPostRequestBody.getTransferTransactionInformation() != null &&
-                paymentOrdersPostRequestBody.getTransferTransactionInformation().getPurposeOfPayment() != null) {
-            checkIfNewAccountCreateRequest = paymentOrdersPostRequestBody.getTransferTransactionInformation()
-                    .getPurposeOfPayment().getFreeText();
-        }
-
-        // Check if the counterparty name contains "westerraCreateNewAccount"
-        String[] accountCodeAndCreateFlag = null;
-        if (checkIfNewAccountCreateRequest != null && checkIfNewAccountCreateRequest.contains("NewAccount")) {
-            // Split the counterparty name to get the account code and the new account creation flag
-            accountCodeAndCreateFlag = checkIfNewAccountCreateRequest.split("-");
-
-            // Check if the split result contains both the account code and the creation flag
-            if (accountCodeAndCreateFlag.length < 2) {
-                // Return a bad request response if the creation flag is missing
-                log.error("Invalid Request for new Account Creation");
-            }
-        }
-
-        String newAccountCreateFlag = accountCodeAndCreateFlag != null ? accountCodeAndCreateFlag[1] : null;
-        // Decision-making based on the createNewAccountFlag
-        if ("NewAccount".equalsIgnoreCase(newAccountCreateFlag)) {
-            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
-        } else {
-            return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
-        }
+        return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
     }
 
     @Override
