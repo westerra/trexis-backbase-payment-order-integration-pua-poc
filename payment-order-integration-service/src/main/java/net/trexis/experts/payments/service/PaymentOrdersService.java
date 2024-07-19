@@ -282,7 +282,6 @@ public class PaymentOrdersService {
 
         addition.put("AccountStatus", "Created");
         addition.put("TransferStatus", "SUCCESS");
-        addition.put("userExternalId",externalUserId);
 
         paymentOrdersPostResponseBody.setAdditions(addition);
 

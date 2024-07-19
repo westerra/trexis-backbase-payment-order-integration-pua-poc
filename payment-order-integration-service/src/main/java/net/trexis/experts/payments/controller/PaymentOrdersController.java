@@ -36,10 +36,8 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
         String externalUserId = null;
 
         // Extracting additions map and initialize createNewAccountFlag safely
-        Map<String, String> additions = paymentOrdersPostRequestBody.getOriginatorAccount().getAdditions();
+        Map<String, String> additions = paymentOrdersPostRequestBody.getAdditions();
         String createNewAccountFlag = additions != null ? additions.getOrDefault(WESTERRA_CREATE_NEW_ACCOUNT, "NO") : "NO";
-
-        String identification = paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getIdentification().getIdentification();
 
         // Attempt to fetch external user ID from JWT if present
         if (securityContextUtil.getOriginatingUserJwt().isPresent()) {
@@ -47,7 +45,7 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
         }
 
         // Decision-making based on the createNewAccountFlag
-        if ("westerraCreateNewAccount".equalsIgnoreCase(identification)) {
+        if ("YES".equalsIgnoreCase(createNewAccountFlag.trim())) {
             return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
         } else {
             return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
