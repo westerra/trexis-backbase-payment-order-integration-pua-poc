@@ -34,35 +34,20 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(
             PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         String externalUserId = null;
+
+        // Extracting additions map and initialize createNewAccountFlag safely
+        Map<String, String> additions = paymentOrdersPostRequestBody.getOriginatorAccount().getAdditions();
+        String createNewAccountFlag = additions != null ? additions.getOrDefault(WESTERRA_CREATE_NEW_ACCOUNT, "NO") : "NO";
+
+        String identification = paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getIdentification().getIdentification();
+
         // Attempt to fetch external user ID from JWT if present
         if (securityContextUtil.getOriginatingUserJwt().isPresent()) {
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().orElse(null);
         }
 
-        // Extract accoubt creation request data  name and split to get account code and creation flag
-        String checkIfNewAccountCreateRequest = null;
-        if (paymentOrdersPostRequestBody.getTransferTransactionInformation() != null &&
-                paymentOrdersPostRequestBody.getTransferTransactionInformation().getPurposeOfPayment() != null) {
-            checkIfNewAccountCreateRequest = paymentOrdersPostRequestBody.getTransferTransactionInformation()
-                    .getPurposeOfPayment().getFreeText();
-        }
-
-        // Check if the counterparty name contains "westerraCreateNewAccount"
-        String[] accountCodeAndCreateFlag = null;
-        if (checkIfNewAccountCreateRequest != null && checkIfNewAccountCreateRequest.contains("NewAccount")) {
-            // Split the counterparty name to get the account code and the new account creation flag
-            accountCodeAndCreateFlag = checkIfNewAccountCreateRequest.split("-");
-
-            // Check if the split result contains both the account code and the creation flag
-            if (accountCodeAndCreateFlag.length < 2) {
-                // Return a bad request response if the creation flag is missing
-                log.error("Invalid Request for new Account Creation");
-            }
-        }
-
-        String newAccountCreateFlag = accountCodeAndCreateFlag != null ? accountCodeAndCreateFlag[1] : null;
         // Decision-making based on the createNewAccountFlag
-        if ("NewAccount".equalsIgnoreCase(newAccountCreateFlag)) {
+        if ("westerraCreateNewAccount".equalsIgnoreCase(identification)) {
             return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
         } else {
             return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
