@@ -358,6 +358,7 @@ workflows:
             branches:
               only:
                 - develop
+                - feature-btp
 
       - build-and-publish:
           name: build-and-publish-for-payment-order-integration-service-for-main-branch
