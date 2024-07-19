@@ -129,6 +129,9 @@ public class PaymentOrdersService {
             Optional.ofNullable(exchangeTransactionResult.getReason())
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
+
+            triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
+
             return paymentOrdersPostResponseBody;
 
         } catch (RuntimeException ex) {
@@ -139,6 +142,14 @@ public class PaymentOrdersService {
             paymentOrdersPostResponseBody.setErrorDescription(getBBCompatibleErrorDescription(ex.getMessage()));
             paymentOrdersPostResponseBody.setReasonText(getBBCompatibleReason(ex.getMessage()));
             return paymentOrdersPostResponseBody;
+        }
+    }
+
+    private void triggerIngestionWithBackbaseOwnershipInformation(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        //trigger ingestion for user to update accountHolder name
+        String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
+        if (backbaseUsername != null) {
+            ingestionApi.getStartEntityIngestion(backbaseUsername, true);
         }
     }
 
