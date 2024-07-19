@@ -133,6 +133,12 @@ public class PaymentOrdersService {
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
 
+            //trigger ingestion for user to update accountHolder name
+            String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
+            if (backbaseUsername != null) {
+                ingestionApi.getStartEntityIngestion(backbaseUsername, true);
+            }
+
             return paymentOrdersPostResponseBody;
 
         } catch (RuntimeException ex) {
@@ -274,7 +280,7 @@ public class PaymentOrdersService {
         PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
         Map<String, String> addition = new HashMap<>();
 
-        addition.put("AccountStatus", "Created");
+        addition.put("AccountStatus", "Created account type "+paymentOrdersPostRequestBody.getTransferTransactionInformation().getCounterpartyAccount().getAccountType());
         addition.put("TransferStatus", "SUCCESS");
         addition.put("userExternalId",externalUserId);
 
