@@ -14,27 +14,24 @@ import com.backbase.dbs.payment.payment_order_integration_outbound.model.SchemeN
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.TransferTransactionInformation;
 import com.finite.api.ExchangeApi;
 import com.finite.api.model.ExchangeTransactionResult;
-
-import java.time.ZoneId;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
-import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.ingestion_service.model.StartIngestionPostRequest;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
+import net.trexis.experts.payments.models.PaymentOrderStatus;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -132,13 +129,6 @@ public class PaymentOrdersService {
             Optional.ofNullable(exchangeTransactionResult.getReason())
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
-
-            //trigger ingestion for user to update accountHolder name
-            String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
-            if (backbaseUsername != null) {
-                ingestionApi.getStartEntityIngestion(backbaseUsername, true);
-            }
-
             return paymentOrdersPostResponseBody;
 
         } catch (RuntimeException ex) {
@@ -274,20 +264,6 @@ public class PaymentOrdersService {
         return input.length() > maxLength
                 ? input.substring(0, maxLength)
                 : input;
-    }
-
-    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
-        PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
-        Map<String, String> addition = new HashMap<>();
-
-        addition.put("AccountStatus", "Created");
-        addition.put("TransferStatus", "SUCCESS");
-
-        paymentOrdersPostResponseBody.setAdditions(addition);
-
-        log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody);
-
-        return paymentOrdersPostResponseBody;
     }
 }
 
