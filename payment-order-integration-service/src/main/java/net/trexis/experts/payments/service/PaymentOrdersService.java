@@ -18,7 +18,6 @@ import com.finite.api.model.Account;
 import com.finite.api.model.ExchangeTransactionResult;
 
 import java.time.ZoneId;
-import java.util.*;
 
 import com.finite.api.model.Product;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +33,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -296,7 +299,7 @@ public class PaymentOrdersService {
                 log.warn("Account creation is currently disabled.");
                 paymentOrdersPostResponseBody.setErrorDescription("Account creation is currently disabled.");
                 paymentOrdersPostResponseBody.setReasonText("Account Creation Has been Disabled please contact Westerra Support");
-                paymentOrdersPostResponseBody.setBankStatus("REJECTED");
+                paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
                 return paymentOrdersPostResponseBody;
             }
 
@@ -325,7 +328,7 @@ public class PaymentOrdersService {
         } catch (Exception e) {
             log.error("Exception occurred while creating account and initiating payment orders: {}", e.getMessage(), e);
             paymentOrdersPostResponseBody.setErrorDescription("New Account creation failed");
-            paymentOrdersPostResponseBody.setBankStatus("REJECTED");
+            paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
         }
         return paymentOrdersPostResponseBody;
     }
@@ -333,7 +336,7 @@ public class PaymentOrdersService {
     private void handleAccountCreationFailure(PaymentOrdersPostRequestBody requestBody, PaymentOrdersPostResponseBody responseBody) {
         log.error("Account creation failed for user {} and account {}", requestBody.getExternalUserId(), requestBody.getTransferTransactionInformation().getPurposeOfPayment().getCode());
         responseBody.setErrorDescription("New Account creation failed");
-        responseBody.setBankStatus("REJECTED");
+        responseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
     }
 
     private PaymentOrdersPostResponseBody handleTransactionError(PaymentOrdersPostResponseBody responseBody, RuntimeException ex) {
@@ -393,22 +396,10 @@ public class PaymentOrdersService {
     private Account mapToAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         Account account = new Account();
         Product product = new Product();
-
         String productCode = getProductCode(paymentOrdersPostRequestBody);
-        String customerCode = getAccountCode(paymentOrdersPostRequestBody);
         product.setId(productCode);
-
         account.setProduct(product);
-        // setting entity id in this
-        account.setId(customerCode);
-
         return account;
-    }
-
-    private String getAccountCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
-        String strWesterraCreateAccount = paymentOrdersPostRequestBody.getTransferTransactionInformation()
-                .getPurposeOfPayment().getFreeText();
-        return strWesterraCreateAccount.split("-")[0];
     }
 
     private String getProductCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
