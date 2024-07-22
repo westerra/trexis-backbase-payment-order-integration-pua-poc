@@ -14,7 +14,7 @@ public class AccountUtils {
         return memberId + "-S-" + newAccountId;
     }
 
-    private static String extractMemberId(String data) {
+    public static String extractMemberId(String data) {
         if (data == null || data.isEmpty()) {
             throw new IllegalArgumentException("Data cannot be null or empty");
         }
