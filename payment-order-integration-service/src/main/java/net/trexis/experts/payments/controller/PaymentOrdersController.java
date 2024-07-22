@@ -20,9 +20,6 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     private final PaymentOrdersService paymentOrdersService;
     private final SecurityContextUtil securityContextUtil;
 
-    private static final String WESTERRA_CREATE_NEW_ACCOUNT = "westerraCreateNewAccount";
-    private static final String YES = "yes";
-
     @Override
     public ResponseEntity<CancelResponse> postCancelPaymentOrder(String bankReferenceId) {
         return ResponseEntity.ok(paymentOrdersService.cancelPaymentOrder(bankReferenceId));
