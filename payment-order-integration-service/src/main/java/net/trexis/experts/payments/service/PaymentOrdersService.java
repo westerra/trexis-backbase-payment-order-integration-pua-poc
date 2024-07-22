@@ -28,6 +28,7 @@ import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.ingestion_service.model.StartIngestionPostRequest;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
+import net.trexis.experts.payments.utilities.AccountUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -398,6 +399,10 @@ public class PaymentOrdersService {
         Product product = new Product();
         String productCode = getProductCode(paymentOrdersPostRequestBody);
         product.setId(productCode);
+
+        // TODO  setting entity id here later if required we will set in Additions Attribute
+        String entityId = AccountUtils.extractMemberId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
+        account.setId(entityId);
         account.setProduct(product);
         return account;
     }
