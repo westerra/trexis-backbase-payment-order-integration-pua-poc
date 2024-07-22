@@ -2,14 +2,19 @@ package net.trexis.experts.payments.controller;
 
 import com.backbase.buildingblocks.backend.security.auth.config.SecurityContextUtil;
 import com.backbase.dbs.payment.payment_order_integration_outbound.api.PaymentOrderIntegrationOutboundApi;
-import com.backbase.dbs.payment.payment_order_integration_outbound.model.*;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.CancelResponse;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutRequestBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutResponseBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostRequestBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostResponseBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PurposeOfPayment;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.TransferTransactionInformation;
 import lombok.RequiredArgsConstructor;
 import net.trexis.experts.payments.service.PaymentOrdersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -42,7 +47,7 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
 
         // Decision-making based on the createNewAccountFlag
         if (NEW_ACCOUNT_REQUEST.equalsIgnoreCase(checkIfNewAccountCreateRequest)) {
-            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
+            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody));
         } else {
             return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
         }

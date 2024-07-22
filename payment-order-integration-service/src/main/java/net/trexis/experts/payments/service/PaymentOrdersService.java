@@ -289,7 +289,7 @@ public class PaymentOrdersService {
                 : input;
     }
 
-    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
+    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostRequestBody );
 
         var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
