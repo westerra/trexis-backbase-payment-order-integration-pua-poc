@@ -6,6 +6,7 @@ import io.swagger.codegen.v3.service.exception.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
+import net.trexis.experts.payments.utilities.AccountUtils;
 import org.apache.commons.lang3.StringUtils;
 import com.finite.api.model.*;
 
@@ -22,6 +23,8 @@ import java.util.Date;
 public class PaymentOrdersMapper {
 
     public static final String CACHE_EXTERNAL_ID = "id";
+    public static final String ACCOUNT_DEBTOR = "AccountDebtor";
+    public static final String ACCOUNT_CREDITOR = "AccountCreditor";
 
     public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, FiniteConfiguration finiteConfiguration, String zoneId) {
         var exchangeTransaction = new ExchangeTransaction();
@@ -115,5 +118,32 @@ public class PaymentOrdersMapper {
                 throw new BadRequestException("Unable to parse date to ISO: " + dateString);
             }
         }
+    }
+
+    public static ExchangeTransaction createPaymentsOrdersforNewAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, Account account, FiniteConfiguration finiteConfiguration, String zoneId) {
+        var exchangeTransaction = new ExchangeTransaction();
+        exchangeTransaction.setIsRecurring(Boolean.FALSE);
+        exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
+        exchangeTransaction.setAmount(new BigDecimal(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount()));
+        exchangeTransaction.setExecutionDate(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().toString()));
+
+        //In Finite the debitor is the From
+        var accountDebtor = new AccountDebtor();
+        accountDebtor.setDebtorType(ACCOUNT_DEBTOR);
+        accountDebtor.setId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
+
+
+        //In Finite the creditor is the To
+        var accountCreditor = new AccountCreditor();
+        accountCreditor.setCreditorType(ACCOUNT_CREDITOR);
+
+        // extracting external arrangementId from originator account
+        String externalArrangementIdForNewAccount = AccountUtils.generateArrangementNewAccount(account, paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
+
+        accountCreditor.setId(externalArrangementIdForNewAccount);
+        exchangeTransaction.setDebtor(accountDebtor);
+        exchangeTransaction.setCreditor(accountCreditor);
+
+        return exchangeTransaction;
     }
 }

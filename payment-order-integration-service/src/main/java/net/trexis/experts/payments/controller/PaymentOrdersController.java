@@ -7,23 +7,23 @@ import com.backbase.dbs.payment.payment_order_integration_outbound.model.Payment
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrderPutResponseBody;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostRequestBody;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostResponseBody;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.PurposeOfPayment;
+import com.backbase.dbs.payment.payment_order_integration_outbound.model.TransferTransactionInformation;
 import lombok.RequiredArgsConstructor;
 import net.trexis.experts.payments.service.PaymentOrdersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
 public class PaymentOrdersController implements PaymentOrderIntegrationOutboundApi {
+    public static final String NEW_ACCOUNT_REQUEST = "NewAccount";
     private final PaymentOrdersService paymentOrdersService;
     private final SecurityContextUtil securityContextUtil;
-
-    private static final String WESTERRA_CREATE_NEW_ACCOUNT = "westerraCreateNewAccount";
-    private static final String YES = "yes";
 
     @Override
     public ResponseEntity<CancelResponse> postCancelPaymentOrder(String bankReferenceId) {
@@ -34,19 +34,20 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
     public ResponseEntity<PaymentOrdersPostResponseBody> postPaymentOrders(
             PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         String externalUserId = null;
-
-        // Extracting additions map and initialize createNewAccountFlag safely
-        Map<String, String> additions = paymentOrdersPostRequestBody.getOriginatorAccount().getAdditions();
-        String createNewAccountFlag = additions != null ? additions.getOrDefault(WESTERRA_CREATE_NEW_ACCOUNT, "NO") : "NO";
-
         // Attempt to fetch external user ID from JWT if present
         if (securityContextUtil.getOriginatingUserJwt().isPresent()) {
             externalUserId = securityContextUtil.getOriginatingUserJwt().get().getClaimsSet().getSubject().orElse(null);
         }
 
+        // Extract account creation request data name and split to get account code and creation flag
+        String checkIfNewAccountCreateRequest = Optional.ofNullable(paymentOrdersPostRequestBody.getTransferTransactionInformation())
+                .map(TransferTransactionInformation::getPurposeOfPayment)
+                .map(PurposeOfPayment::getFreeText)
+                .orElse(null);
+
         // Decision-making based on the createNewAccountFlag
-        if ("YES".equalsIgnoreCase(createNewAccountFlag.trim())) {
-            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
+        if (NEW_ACCOUNT_REQUEST.equalsIgnoreCase(checkIfNewAccountCreateRequest)) {
+            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody));
         } else {
             return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
         }

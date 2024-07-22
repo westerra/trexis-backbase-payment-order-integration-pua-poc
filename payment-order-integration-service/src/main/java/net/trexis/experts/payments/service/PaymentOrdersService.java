@@ -12,11 +12,14 @@ import com.backbase.dbs.payment.payment_order_integration_outbound.model.Payment
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.PaymentOrdersPostResponseBody;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.SchemeName;
 import com.backbase.dbs.payment.payment_order_integration_outbound.model.TransferTransactionInformation;
+import com.finite.api.AccountsApi;
 import com.finite.api.ExchangeApi;
+import com.finite.api.model.Account;
 import com.finite.api.model.ExchangeTransactionResult;
 
 import java.time.ZoneId;
-import java.util.Optional;
+
+import com.finite.api.model.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.finite.FiniteConfiguration;
@@ -31,10 +34,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -49,6 +51,7 @@ public class PaymentOrdersService {
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
     private final ArrangementsApi arrangementsApi;
+    private final AccountsApi accountsApi;
 
     @Value("${rejectRecurringStartingToday.enabled:false}")
     private boolean rejectRecurringStartingTodayEnabled;
@@ -66,6 +69,12 @@ public class PaymentOrdersService {
 
     @Value("${timeZone.zoneId:America/Denver}")
     private String zoneId;
+
+    @Value("${westerraExploreProduct.creation.enabled:true}")
+    private boolean isAccountCreationEnabled;
+
+    @Value("${westerraExploreProduct.transfer.enabled:true}")
+    private boolean isPaymentTransferEnabled;
 
     Executor async = new Executor() {
         @Override
@@ -133,6 +142,8 @@ public class PaymentOrdersService {
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
 
+            triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
+
             return paymentOrdersPostResponseBody;
 
         } catch (RuntimeException ex) {
@@ -143,6 +154,14 @@ public class PaymentOrdersService {
             paymentOrdersPostResponseBody.setErrorDescription(getBBCompatibleErrorDescription(ex.getMessage()));
             paymentOrdersPostResponseBody.setReasonText(getBBCompatibleReason(ex.getMessage()));
             return paymentOrdersPostResponseBody;
+        }
+    }
+
+    private void triggerIngestionWithBackbaseOwnershipInformation(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        //trigger ingestion for user to update accountHolder name
+        String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
+        if (backbaseUsername != null) {
+            ingestionApi.getStartEntityIngestion(backbaseUsername, true);
         }
     }
 
@@ -270,19 +289,122 @@ public class PaymentOrdersService {
                 : input;
     }
 
-    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
-        PaymentOrdersPostResponseBody paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
-        Map<String, String> addition = new HashMap<>();
+    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostRequestBody );
 
-        addition.put("AccountStatus", "Created");
-        addition.put("TransferStatus", "SUCCESS");
-        addition.put("userExternalId",externalUserId);
+        var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
+        try {
 
-        paymentOrdersPostResponseBody.setAdditions(addition);
+            if (!isAccountCreationEnabled) {
+                log.warn("Account creation is currently disabled.");
+                paymentOrdersPostResponseBody.setErrorDescription("Account creation is currently disabled.");
+                paymentOrdersPostResponseBody.setReasonText("Account Creation Has been Disabled please contact Westerra Support");
+                paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+                return paymentOrdersPostResponseBody;
+            }
 
-        log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostResponseBody);
+            // Map request to account object
+            Account account = mapToAccount(paymentOrdersPostRequestBody);
 
+            // Call connector to create account
+            Account accountResponse = createNewAccount(account);
+
+            if (accountResponse != null) {
+                log.debug("Account successfully created: {}", accountResponse);
+
+                if (!isPaymentTransferEnabled) {
+                    log.warn("Payment transfer is currently disabled.");
+                    paymentOrdersPostResponseBody.setErrorDescription("Payment transfer is currently disabled.");
+                    return paymentOrdersPostResponseBody;
+                }
+
+                 paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
+
+               // trigger ingestion once transfer complete it
+                triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
+            } else {
+                handleAccountCreationFailure(paymentOrdersPostRequestBody, paymentOrdersPostResponseBody);
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred while creating account and initiating payment orders: {}", e.getMessage(), e);
+            paymentOrdersPostResponseBody.setErrorDescription("New Account creation failed");
+            paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+        }
         return paymentOrdersPostResponseBody;
+    }
+
+    private void handleAccountCreationFailure(PaymentOrdersPostRequestBody requestBody, PaymentOrdersPostResponseBody responseBody) {
+        log.error("Account creation failed for user {} and account {}", requestBody.getExternalUserId(), requestBody.getTransferTransactionInformation().getPurposeOfPayment().getCode());
+        responseBody.setErrorDescription("New Account creation failed");
+        responseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+    }
+
+    private PaymentOrdersPostResponseBody handleTransactionError(PaymentOrdersPostResponseBody responseBody, RuntimeException ex) {
+        responseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+        responseBody.setErrorDescription(getBBCompatibleErrorDescription(ex.getMessage()));
+        responseBody.setReasonText(getBBCompatibleReason(ex.getMessage()));
+        return responseBody;
+    }
+
+    private  PaymentOrdersPostResponseBody initiatePaymentOrderForNewAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, Account accountResponse, PaymentOrdersPostResponseBody paymentOrdersPostResponseBody) {
+        try {
+            var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrdersforNewAccount(paymentOrdersPostRequestBody, accountResponse,finiteConfiguration,zoneId);
+
+            log.debug("Initiate payment order for new account {}", exchangeTransaction);
+
+            var transactionResult =
+                    exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
+            log.debug("exchange transactionResult {}", transactionResult);
+
+            if (transactionResult == null || StringUtils.isEmpty(transactionResult.getExchangeTransactionId())) {
+                handleTransactionFailure(transactionResult);
+            } else {
+                populateResponseBody(paymentOrdersPostResponseBody, paymentOrdersPostRequestBody, transactionResult);
+            }
+
+            return paymentOrdersPostResponseBody;
+
+        } catch (RuntimeException ex) {
+            log.error("Error while exchanging transaction: {}", ex.getMessage());
+            return handleTransactionError(paymentOrdersPostResponseBody, ex);
+        }
+    }
+
+    private void handleTransactionFailure(ExchangeTransactionResult transactionResult) throws PaymentOrdersServiceException {
+        String reason = transactionResult != null ? transactionResult.getReason() : "Unknown reason";
+        throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(reason));
+    }
+
+    private void populateResponseBody(PaymentOrdersPostResponseBody responseBody, PaymentOrdersPostRequestBody requestBody, ExchangeTransactionResult transactionResult) {
+        PaymentOrderStatus paymentOrderStatus = PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(requestBody, zoneId);
+        responseBody.setBankReferenceId(transactionResult.getExchangeTransactionId());
+        responseBody.setBankStatus(paymentOrderStatus.getValue());
+
+        Optional.ofNullable(transactionResult.getStatus())
+                .map(rawValue -> this.truncateTo(rawValue, 4))
+                .ifPresent(responseBody::setReasonCode);
+
+        Optional.ofNullable(transactionResult.getReason())
+                .map(rawValue -> this.truncateTo(rawValue, 35))
+                .ifPresent(responseBody::setReasonText);
+    }
+
+    private Account createNewAccount(Account account) {
+        return accountsApi.postAccount(account,"trace_account_create",null,null,true);
+    }
+
+    private Account mapToAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        Account account = new Account();
+        Product product = new Product();
+        String productCode = getProductCode(paymentOrdersPostRequestBody);
+        product.setId(productCode);
+        account.setProduct(product);
+        return account;
+    }
+
+    private String getProductCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+        return paymentOrdersPostRequestBody.getTransferTransactionInformation()
+                .getPurposeOfPayment().getCode();
     }
 }
 
