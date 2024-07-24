@@ -161,9 +161,8 @@ public class PaymentOrdersService {
     private void triggerIngestionWithBackbaseOwnershipInformation(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         //trigger ingestion for user to update accountHolder name
         String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
-        if (backbaseUsername != null) {
-            ingestionApi.getStartEntityIngestion(backbaseUsername, true);
-        }
+        Optional.ofNullable(backbaseUsername)
+                .ifPresent(username -> ingestionApi.getStartEntityIngestion(username, true));
     }
 
     private String getArrangementIdByIdentification(Identification identification) {
@@ -372,7 +371,9 @@ public class PaymentOrdersService {
     }
 
     private void handleTransactionFailure(ExchangeTransactionResult transactionResult) throws PaymentOrdersServiceException {
-        String reason = transactionResult != null ? transactionResult.getReason() : "Unknown reason";
+        String reason = Optional.ofNullable(transactionResult)
+                .map(ExchangeTransactionResult::getReason)
+                .orElse("Unknown reason");
         throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(reason));
     }
 
