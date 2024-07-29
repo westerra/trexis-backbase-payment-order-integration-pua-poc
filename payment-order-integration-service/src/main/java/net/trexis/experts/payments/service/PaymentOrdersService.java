@@ -161,8 +161,9 @@ public class PaymentOrdersService {
     private void triggerIngestionWithBackbaseOwnershipInformation(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         //trigger ingestion for user to update accountHolder name
         String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
-        Optional.ofNullable(backbaseUsername)
-                .ifPresent(username -> ingestionApi.getStartEntityIngestion(username, true));
+        if (backbaseUsername != null) {
+            ingestionApi.getStartEntityIngestion(backbaseUsername, true);
+        }
     }
 
     private String getArrangementIdByIdentification(Identification identification) {
@@ -318,9 +319,9 @@ public class PaymentOrdersService {
                     return paymentOrdersPostResponseBody;
                 }
 
-                 paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
+                paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
 
-               // trigger ingestion once transfer complete it
+                // trigger ingestion once transfer complete it
                 triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
             } else {
                 handleAccountCreationFailure(paymentOrdersPostRequestBody, paymentOrdersPostResponseBody);
@@ -371,9 +372,7 @@ public class PaymentOrdersService {
     }
 
     private void handleTransactionFailure(ExchangeTransactionResult transactionResult) throws PaymentOrdersServiceException {
-        String reason = Optional.ofNullable(transactionResult)
-                .map(ExchangeTransactionResult::getReason)
-                .orElse("Unknown reason");
+        String reason = transactionResult != null ? transactionResult.getReason() : "Unknown reason";
         throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(reason));
     }
 
