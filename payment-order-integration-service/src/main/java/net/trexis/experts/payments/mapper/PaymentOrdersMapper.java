@@ -144,6 +144,17 @@ public class PaymentOrdersMapper {
         exchangeTransaction.setDebtor(accountDebtor);
         exchangeTransaction.setCreditor(accountCreditor);
 
+        if (!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))) {
+            log.warn("Schedule Payment Order ON {}  ",paymentOrdersPostRequestBody.getRequestedExecutionDate());
+            var schedule = new Schedule();
+            schedule.setStrategy(Schedule.StrategyEnum.NONE);
+            schedule.setFrequency("ONCE");
+            schedule.setStartDateTime(exchangeTransaction.getExecutionDate());
+            //Add 1 week as expiration for future transfers.
+            schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString()));
+            exchangeTransaction.setRecurringSchedule(schedule);
+        }
+
         return exchangeTransaction;
     }
 }
