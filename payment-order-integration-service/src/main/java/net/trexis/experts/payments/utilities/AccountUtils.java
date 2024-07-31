@@ -10,7 +10,7 @@ public class AccountUtils {
         }
 
         String memberId = extractMemberId(originatorExtArrangementId);
-        String newAccountId = account.getProduct().getType();
+        String newAccountId = account.getProduct().getId();
         return memberId + "-S-" + newAccountId;
     }
 
