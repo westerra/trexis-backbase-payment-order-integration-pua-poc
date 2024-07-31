@@ -350,11 +350,11 @@ public class PaymentOrdersService {
         try {
             var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrdersforNewAccount(paymentOrdersPostRequestBody, accountResponse,finiteConfiguration,zoneId);
 
-            log.debug("Initiate payment order for new account {}", exchangeTransaction);
+            log.warn("Initiate payment order for new account {}", exchangeTransaction);
 
             var transactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
-            log.debug("exchange transactionResult {}", transactionResult);
+            log.warn("exchange transactionResult {}", transactionResult);
 
             if (transactionResult == null || StringUtils.isEmpty(transactionResult.getExchangeTransactionId())) {
                 handleTransactionFailure(transactionResult);

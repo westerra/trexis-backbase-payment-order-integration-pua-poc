@@ -144,8 +144,29 @@ public class PaymentOrdersMapper {
         exchangeTransaction.setDebtor(accountDebtor);
         exchangeTransaction.setCreditor(accountCreditor);
 
-        if (!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))) {
-            log.warn("Schedule Payment Order ON {}  ",paymentOrdersPostRequestBody.getRequestedExecutionDate());
+        log.warn("Payment mode {} and requested execution date {} ",paymentOrdersPostRequestBody.getPaymentMode(),paymentOrdersPostRequestBody.getRequestedExecutionDate());
+
+        if(!paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
+            var schedule = new Schedule();
+            exchangeTransaction.setIsRecurring(Boolean.TRUE);
+            schedule.setRepeatCount(paymentOrdersPostRequestBody.getSchedule().getRepeat());
+            schedule.setStrategy(Schedule.StrategyEnum.NONE);
+            String finitePaymentFrequency = finiteConfiguration.getFiniteFromBackbaseMapping(finiteConfiguration.getPaymentFrequencies(), paymentOrdersPostRequestBody.getSchedule().getTransferFrequency().toString());
+            schedule.setFrequency(finitePaymentFrequency);
+            schedule.setIsEveryTime(Boolean.TRUE);
+            schedule.setDayOn(paymentOrdersPostRequestBody.getSchedule().getOn().toString());
+            schedule.setStartDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getStartDate().toString()));
+
+            //The end date calculation takes place in Finite, as it will be specific per core/customer
+            if(paymentOrdersPostRequestBody.getSchedule().getEndDate()!=null){
+                schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getEndDate().toString()));
+            }
+            exchangeTransaction.setRecurringSchedule(schedule);
+        }
+        else if(!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))){
+
+            log.warn("Initiating payment on {} ",LocalDate.now(ZoneId.of(zoneId)));
+
             var schedule = new Schedule();
             schedule.setStrategy(Schedule.StrategyEnum.NONE);
             schedule.setFrequency("ONCE");
@@ -154,6 +175,8 @@ public class PaymentOrdersMapper {
             schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString()));
             exchangeTransaction.setRecurringSchedule(schedule);
         }
+
+        log.warn("exchange transaction payload {}", exchangeTransaction);
 
         return exchangeTransaction;
     }
