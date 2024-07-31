@@ -350,11 +350,12 @@ public class PaymentOrdersService {
         try {
             var exchangeTransaction = PaymentOrdersMapper.createPaymentsOrdersforNewAccount(paymentOrdersPostRequestBody, accountResponse,finiteConfiguration,zoneId);
 
-            log.warn("Initiate payment order for new account {}", exchangeTransaction);
+            log.debug("Initiate payment order for new account {}", exchangeTransaction);
 
             var transactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
-            log.warn("exchange transactionResult {}", transactionResult);
+
+            log.debug("exchange transactionResult {}", transactionResult);
 
             if (transactionResult == null || StringUtils.isEmpty(transactionResult.getExchangeTransactionId())) {
                 handleTransactionFailure(transactionResult);
@@ -399,7 +400,7 @@ public class PaymentOrdersService {
         Account account = new Account();
         Product product = new Product();
         String productCode = getProductCode(paymentOrdersPostRequestBody);
-        product.setId(productCode);
+        product.setType(productCode);
 
         // TODO  setting entity id here later if required we will set in Additions Attribute
         String entityId = AccountUtils.extractMemberId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
