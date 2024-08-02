@@ -143,7 +143,7 @@ public class PaymentOrdersService {
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
 
-            triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
+           // triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
 
             return paymentOrdersPostResponseBody;
 
