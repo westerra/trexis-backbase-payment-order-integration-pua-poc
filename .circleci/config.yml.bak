@@ -353,29 +353,12 @@ workflows:
           repo: dbs-payment-order-integration-service
           dockerfile: Dockerfile
           extra-build-args: '--build-arg JAR_FILE=payment-order-integration-service.jar'
-          tag: dev-${CIRCLE_SHA1:0:7}
+          tag: dev-${CIRCLE_SHA1:0:7},sit-${CIRCLE_SHA1:0:7}
           filters:
             branches:
               only:
                 - develop
                 - feature-btp
-################################################################################################################################################
-      - build-and-publish:
-          name: build-and-publish-for-payment-order-integration-service-for-upgrade-branch
-          context: 
-            - bb-aws-sit
-            - bb-aws-sit-2
-          app_folder: payment-order-integration-service
-          path: ./payment-order-integration-service/docker
-          repo: dbs-payment-order-integration-service
-          dockerfile: Dockerfile
-          extra-build-args: '--build-arg JAR_FILE=payment-order-integration-service.jar'
-          tag: sit-${CIRCLE_SHA1:0:7}
-          filters:
-            branches:
-              only:
-                - backbase-upgrade
-################################################################################################################################################                
 
       - build-and-publish:
           name: build-and-publish-for-payment-order-integration-service-for-main-branch
@@ -413,14 +396,14 @@ workflows:
                 - feature-btp
 
    
-      # - request-to-deploy-in-sit:
-      #     requires:
-      #       - deploy-payment-order-integration-service-dev
-      #     type: approval
-      #     filters:
-      #       branches:
-      #         only:
-      #           - develop
+      - request-to-deploy-in-sit:
+          requires:
+            - deploy-payment-order-integration-service-dev
+          type: approval
+          filters:
+            branches:
+              only:
+                - develop
 
       - deploy:
           name: deploy-payment-order-integration-service-sit
@@ -428,7 +411,7 @@ workflows:
             - bb-aws-sit
             - bb-aws-sit-2
           requires:
-            - build-and-publish-for-payment-order-integration-service-for-upgrade-branch
+            - request-to-deploy-in-sit
           app_folder: payment-order-integration-service
           cluster-name: westerra-dev-eks
           namespace: westerra-sit
@@ -437,7 +420,7 @@ workflows:
           filters:
             branches:
               only:
-                - backbase-upgrade
+                - develop
 
       - request-to-deploy-in-uat:
           requires:
@@ -493,7 +476,7 @@ workflows:
 
       - approval-for-creating-pr-from-develop-to-main:
           requires:
-            - deploy-payment-order-integration-service-dev
+            - deploy-payment-order-integration-service-sit
           type: approval      
           filters:
             branches:
