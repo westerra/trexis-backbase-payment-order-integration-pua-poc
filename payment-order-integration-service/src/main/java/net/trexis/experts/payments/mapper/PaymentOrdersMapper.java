@@ -90,11 +90,11 @@ public class PaymentOrdersMapper {
 
     public static PaymentOrderStatus createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String zoneId) {
 
-        log.info("Server time: {}", serverTime);
-        log.info("Application time: {}", applicationTime);
+        log.trace("Server time: {}", serverTime);
+        log.trace("Application time: {}", applicationTime);
 
         long timeDifferenceInSeconds = Duration.between(serverTime, applicationTime).getSeconds();
-        log.info("Time difference in seconds: {}", timeDifferenceInSeconds);
+        log.trace("Time difference in seconds: {}", timeDifferenceInSeconds);
 
         //Return processed if requested date is the same as today and payment type is single as core is handling this immediately
         if(paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
