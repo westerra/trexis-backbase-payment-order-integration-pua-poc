@@ -17,6 +17,7 @@ import com.finite.api.ExchangeApi;
 import com.finite.api.model.Account;
 import com.finite.api.model.ExchangeTransactionResult;
 
+import java.math.BigDecimal;
 import java.time.ZoneId;
 
 import com.finite.api.model.Product;
@@ -318,8 +319,17 @@ public class PaymentOrdersService {
                     return paymentOrdersPostResponseBody;
                 }
 
-                paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
+                BigDecimal amount = new BigDecimal(paymentOrdersPostRequestBody
+                        .getTransferTransactionInformation()
+                        .getInstructedAmount()
+                        .getAmount());
 
+                // Check if the amount is greater than 0
+                if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                    paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
+                } else {
+                    log.info("Amount must be greater than 0 to initiate a payment order.");
+                }
                 // trigger ingestion once transfer complete it
                 triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
             } else {
