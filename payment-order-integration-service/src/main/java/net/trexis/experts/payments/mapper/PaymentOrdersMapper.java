@@ -13,11 +13,9 @@ import com.finite.api.model.*;
 import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
@@ -27,9 +25,6 @@ public class PaymentOrdersMapper {
     public static final String CACHE_EXTERNAL_ID = "id";
     public static final String ACCOUNT_DEBTOR = "AccountDebtor";
     public static final String ACCOUNT_CREDITOR = "AccountCreditor";
-
-    static ZonedDateTime serverTime = ZonedDateTime.now(); // Server's timezone
-    static ZonedDateTime applicationTime = ZonedDateTime.now(ZoneId.of("America/Denver")); // Application's configured timezone
 
     public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, FiniteConfiguration finiteConfiguration, String zoneId) {
         var exchangeTransaction = new ExchangeTransaction();
@@ -89,16 +84,11 @@ public class PaymentOrdersMapper {
     }
 
     public static PaymentOrderStatus createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String zoneId) {
-
-        log.trace("Server time: {}", serverTime);
-        log.trace("Application time: {}", applicationTime);
-
-        long timeDifferenceInSeconds = Duration.between(serverTime, applicationTime).getSeconds();
-        log.trace("Time difference in seconds: {}", timeDifferenceInSeconds);
-
         //Return processed if requested date is the same as today and payment type is single as core is handling this immediately
-        if(paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
-            if(paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))) {
+        if (paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
+            // Ensure both dates are compared in UTC
+            if (paymentOrdersPostRequestBody.getRequestedExecutionDate()
+                    .isEqual(LocalDate.now(ZoneId.of("UTC")))) {
                 log.debug("Execution Date is immediate, saving payment order as PROCESSED");
                 return PaymentOrderStatus.PROCESSED;
             }
