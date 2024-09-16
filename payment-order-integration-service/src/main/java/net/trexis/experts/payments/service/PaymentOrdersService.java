@@ -31,13 +31,16 @@ import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
 import net.trexis.experts.payments.utilities.AccountUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 
@@ -49,6 +52,9 @@ public class PaymentOrdersService {
     public static final String INTRABANK_TRANSFER = "INTRABANK_TRANSFER";
     public static final String ARRANGEMENT_ID_FORMATTER = "%010d";
     public static final String PRODUCT_ID = "-S-0";
+    public static final String ACCOUNT_STATUS = "accountStatus";
+    public static final String FAILED = "FAILED";
+    public static final String SUCCESS = "SUCCESS";
     private final ExchangeApi exchangeApi;
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
@@ -293,15 +299,12 @@ public class PaymentOrdersService {
     public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostRequestBody );
 
+        Map<String,String> additions = new HashMap<>();
         var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
         try {
 
             if (!isAccountCreationEnabled) {
-                log.warn("Account creation is currently disabled.");
-                paymentOrdersPostResponseBody.setErrorDescription("Account creation is currently disabled.");
-                paymentOrdersPostResponseBody.setReasonText("Account Creation Has been Disabled please contact Westerra Support");
-                paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-                return paymentOrdersPostResponseBody;
+                return handleAccountCreationDisabled(paymentOrdersPostResponseBody, additions);
             }
 
             // Map request to account object
@@ -312,10 +315,12 @@ public class PaymentOrdersService {
 
             if (accountResponse != null) {
                 log.warn("Account successfully created: {}", accountResponse);
+                additions.put(ACCOUNT_STATUS, SUCCESS);
 
                 if (!isPaymentTransferEnabled) {
                     log.warn("Payment transfer is currently disabled.");
                     paymentOrdersPostResponseBody.setErrorDescription("Payment transfer is currently disabled.");
+                    additions.put("message","Payment transfer is currently disabled");
                     return paymentOrdersPostResponseBody;
                 }
 
@@ -327,26 +332,38 @@ public class PaymentOrdersService {
                 // Check if the amount is greater than 0
                 if (amount.compareTo(BigDecimal.ZERO) > 0) {
                     paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
-                } else {
-                    log.info("Amount must be greater than 0 to initiate a payment order.");
                 }
+
                 // trigger ingestion once transfer complete it
                 triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
             } else {
-                handleAccountCreationFailure(paymentOrdersPostRequestBody, paymentOrdersPostResponseBody);
+                handleAccountCreationFailure(paymentOrdersPostRequestBody, paymentOrdersPostResponseBody,additions);
             }
         } catch (Exception e) {
             log.error("Exception occurred while creating account and initiating payment orders: {}", e.getMessage(), e);
-            paymentOrdersPostResponseBody.setErrorDescription("New Account creation failed");
-            paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+            additions.put("message","Something went wrong,Please contact westerra support ");
         }
         return paymentOrdersPostResponseBody;
     }
 
-    private void handleAccountCreationFailure(PaymentOrdersPostRequestBody requestBody, PaymentOrdersPostResponseBody responseBody) {
+    private static @NotNull PaymentOrdersPostResponseBody handleAccountCreationDisabled(PaymentOrdersPostResponseBody paymentOrdersPostResponseBody, Map<String, String> additions) {
+        log.warn("Account creation is currently disabled.");
+        paymentOrdersPostResponseBody.setErrorDescription("Account creation is currently disabled.");
+        paymentOrdersPostResponseBody.setReasonText("Account Creation Has been Disabled please contact Westerra Support");
+        paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+
+        additions.put("message","Account creation is currently disabled ");
+        paymentOrdersPostResponseBody.setAdditions(additions);
+        return paymentOrdersPostResponseBody;
+    }
+
+    private void handleAccountCreationFailure(PaymentOrdersPostRequestBody requestBody, PaymentOrdersPostResponseBody responseBody, Map<String,String> additions) {
         log.error("Account creation failed for user {} and account {}", requestBody.getExternalUserId(), requestBody.getTransferTransactionInformation().getPurposeOfPayment().getCode());
         responseBody.setErrorDescription("New Account creation failed");
         responseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+        additions.put(ACCOUNT_STATUS, FAILED);
+        responseBody.setAdditions(additions);
+
     }
 
     private PaymentOrdersPostResponseBody handleTransactionError(PaymentOrdersPostResponseBody responseBody, RuntimeException ex) {
