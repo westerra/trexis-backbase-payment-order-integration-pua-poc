@@ -33,6 +33,8 @@ jobs:
       - checkout
       - gh/setup
       - aws-cli/install
+      - setup_remote_docker:
+          version: default      
 
       - run:
           command: find . -name 'pom.xml' | sort | xargs cat > /tmp/maven_cache_seed
@@ -91,6 +93,8 @@ jobs:
       - git-shallow-clone/checkout_advanced:
           keyscan_github: true 
           clone_options: --depth 5 
+      - setup_remote_docker:
+          version: default          
 #      - gh/clone
       - run:
           command: |
@@ -129,6 +133,8 @@ jobs:
           at: .
       - checkout
       - aws-cli/install
+      - setup_remote_docker:
+          version: default      
 
       - run:
           command: find . -name 'pom.xml' | sort | xargs cat > /tmp/maven_cache_seed
@@ -194,8 +200,8 @@ jobs:
           extra-build-args: <<parameters.extra-build-args>>
           skip-when-tags-exist: false
           workspace-root: .
-          setup-remote-docker: true
-          remote-docker-layer-caching: true
+          # setup-remote-docker: true
+          # remote-docker-layer-caching: true
 
   deploy:
     machine:
