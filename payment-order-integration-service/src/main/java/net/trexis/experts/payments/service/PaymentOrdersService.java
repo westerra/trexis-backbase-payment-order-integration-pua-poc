@@ -17,8 +17,8 @@ import com.finite.api.ExchangeApi;
 import com.finite.api.model.Account;
 import com.finite.api.model.ExchangeTransactionResult;
 
+import java.math.BigDecimal;
 import java.time.ZoneId;
-import java.util.*;
 
 import com.finite.api.model.Product;
 import lombok.RequiredArgsConstructor;
@@ -29,11 +29,19 @@ import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.ingestion_service.model.StartIngestionPostRequest;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
+import net.trexis.experts.payments.utilities.AccountUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -44,6 +52,11 @@ public class PaymentOrdersService {
     public static final String INTRABANK_TRANSFER = "INTRABANK_TRANSFER";
     public static final String ARRANGEMENT_ID_FORMATTER = "%010d";
     public static final String PRODUCT_ID = "-S-0";
+    public static final String ACCOUNT_STATUS = "accountStatus";
+    public static final String FAILED = "FAILED";
+    public static final String SUCCESS = "SUCCESS";
+    public static final String NEW_ACCOUNT_CREATION_FAILER_MSG = "New Account creation failed";
+    public static final String ACCOUNT_CREATION_IS_CURRENTLY_DISABLED = "Account creation is currently disabled.";
     private final ExchangeApi exchangeApi;
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
@@ -139,7 +152,7 @@ public class PaymentOrdersService {
                     .map(rawValue -> this.truncateTo(rawValue, 35))
                     .ifPresent(paymentOrdersPostResponseBody::setReasonText);
 
-            triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
+            // triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
 
             return paymentOrdersPostResponseBody;
 
@@ -157,9 +170,8 @@ public class PaymentOrdersService {
     private void triggerIngestionWithBackbaseOwnershipInformation(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         //trigger ingestion for user to update accountHolder name
         String backbaseUsername = paymentOrdersPostRequestBody.getExternalUserId();
-        if (backbaseUsername != null) {
-            ingestionApi.getStartEntityIngestion(backbaseUsername, true);
-        }
+        Optional.ofNullable(backbaseUsername)
+                .ifPresent(username -> ingestionApi.getStartEntityIngestion(username, true));
     }
 
     private String getArrangementIdByIdentification(Identification identification) {
@@ -286,18 +298,15 @@ public class PaymentOrdersService {
                 : input;
     }
 
-    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String externalUserId) {
+    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         log.debug(" Request Received for new account creation  -> {}", paymentOrdersPostRequestBody );
 
+        Map<String,String> additions = new HashMap<>();
         var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
         try {
 
             if (!isAccountCreationEnabled) {
-                log.warn("Account creation is currently disabled.");
-                paymentOrdersPostResponseBody.setErrorDescription("Account creation is currently disabled.");
-                paymentOrdersPostResponseBody.setReasonText("Account Creation Has been Disabled please contact Westerra Support");
-                paymentOrdersPostResponseBody.setBankStatus("REJECTED");
-                return paymentOrdersPostResponseBody;
+                return handleAccountCreationDisabled(paymentOrdersPostResponseBody, additions);
             }
 
             // Map request to account object
@@ -307,33 +316,54 @@ public class PaymentOrdersService {
             Account accountResponse = createNewAccount(account);
 
             if (accountResponse != null) {
-                log.debug("Account successfully created: {}", accountResponse);
+                log.warn("Account successfully created: {}", accountResponse);
+                additions.put(ACCOUNT_STATUS, SUCCESS);
 
                 if (!isPaymentTransferEnabled) {
                     log.warn("Payment transfer is currently disabled.");
                     paymentOrdersPostResponseBody.setErrorDescription("Payment transfer is currently disabled.");
+                    additions.put("message","Payment transfer is currently disabled");
                     return paymentOrdersPostResponseBody;
                 }
 
-                 paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
+                BigDecimal amount = new BigDecimal(paymentOrdersPostRequestBody
+                        .getTransferTransactionInformation()
+                        .getInstructedAmount()
+                        .getAmount());
 
-               // trigger ingestion once transfer complete it
+                // Check if the amount is greater than 0
+                if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                    paymentOrdersPostResponseBody = initiatePaymentOrderForNewAccount(paymentOrdersPostRequestBody, accountResponse, paymentOrdersPostResponseBody);
+                }
+
+                // trigger ingestion once transfer complete it
                 triggerIngestionWithBackbaseOwnershipInformation(paymentOrdersPostRequestBody);
             } else {
-                handleAccountCreationFailure(paymentOrdersPostRequestBody, paymentOrdersPostResponseBody);
+                handleAccountCreationFailure(paymentOrdersPostRequestBody, paymentOrdersPostResponseBody,additions);
             }
         } catch (Exception e) {
             log.error("Exception occurred while creating account and initiating payment orders: {}", e.getMessage(), e);
-            paymentOrdersPostResponseBody.setErrorDescription("New Account creation failed");
-            paymentOrdersPostResponseBody.setBankStatus("REJECTED");
+            additions.put("message","Something went wrong,Please contact westerra support ");
         }
         return paymentOrdersPostResponseBody;
     }
 
-    private void handleAccountCreationFailure(PaymentOrdersPostRequestBody requestBody, PaymentOrdersPostResponseBody responseBody) {
+    private static @NotNull PaymentOrdersPostResponseBody handleAccountCreationDisabled(PaymentOrdersPostResponseBody paymentOrdersPostResponseBody, Map<String, String> additions) {
+        log.warn(ACCOUNT_CREATION_IS_CURRENTLY_DISABLED);
+        paymentOrdersPostResponseBody.setErrorDescription(ACCOUNT_CREATION_IS_CURRENTLY_DISABLED);
+        paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+        paymentOrdersPostResponseBody.setAdditions(additions);
+        return paymentOrdersPostResponseBody;
+
+    }
+
+    private void handleAccountCreationFailure(PaymentOrdersPostRequestBody requestBody, PaymentOrdersPostResponseBody responseBody, Map<String,String> additions) {
         log.error("Account creation failed for user {} and account {}", requestBody.getExternalUserId(), requestBody.getTransferTransactionInformation().getPurposeOfPayment().getCode());
-        responseBody.setErrorDescription("New Account creation failed");
-        responseBody.setBankStatus("REJECTED");
+        responseBody.setErrorDescription(NEW_ACCOUNT_CREATION_FAILER_MSG);
+        responseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+        additions.put(ACCOUNT_STATUS, FAILED);
+        responseBody.setAdditions(additions);
+
     }
 
     private PaymentOrdersPostResponseBody handleTransactionError(PaymentOrdersPostResponseBody responseBody, RuntimeException ex) {
@@ -351,6 +381,7 @@ public class PaymentOrdersService {
 
             var transactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
+
             log.debug("exchange transactionResult {}", transactionResult);
 
             if (transactionResult == null || StringUtils.isEmpty(transactionResult.getExchangeTransactionId())) {
@@ -368,7 +399,9 @@ public class PaymentOrdersService {
     }
 
     private void handleTransactionFailure(ExchangeTransactionResult transactionResult) throws PaymentOrdersServiceException {
-        String reason = transactionResult != null ? transactionResult.getReason() : "Unknown reason";
+        String reason = Optional.ofNullable(transactionResult)
+                .map(ExchangeTransactionResult::getReason)
+                .orElse("Unknown reason");
         throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(reason));
     }
 
@@ -393,22 +426,13 @@ public class PaymentOrdersService {
     private Account mapToAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         Account account = new Account();
         Product product = new Product();
-
         String productCode = getProductCode(paymentOrdersPostRequestBody);
-        String customerCode = getAccountCode(paymentOrdersPostRequestBody);
-        product.setId(productCode);
+        product.setType(productCode);
 
+        String entityId = AccountUtils.extractMemberId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
+        account.setId(entityId);
         account.setProduct(product);
-        // setting entity id in this
-        account.setId(customerCode);
-
         return account;
-    }
-
-    private String getAccountCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
-        String strWesterraCreateAccount = paymentOrdersPostRequestBody.getTransferTransactionInformation()
-                .getPurposeOfPayment().getFreeText();
-        return strWesterraCreateAccount.split("-")[0];
     }
 
     private String getProductCode(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
@@ -416,4 +440,3 @@ public class PaymentOrdersService {
                 .getPurposeOfPayment().getCode();
     }
 }
-
