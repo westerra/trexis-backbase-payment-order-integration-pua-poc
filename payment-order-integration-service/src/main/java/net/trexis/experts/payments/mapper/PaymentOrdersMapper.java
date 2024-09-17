@@ -6,7 +6,6 @@ import io.swagger.codegen.v3.service.exception.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
-import net.trexis.experts.payments.utilities.AccountUtils;
 import org.apache.commons.lang3.StringUtils;
 import com.finite.api.model.*;
 
@@ -23,8 +22,6 @@ import java.util.Date;
 public class PaymentOrdersMapper {
 
     public static final String CACHE_EXTERNAL_ID = "id";
-    public static final String ACCOUNT_DEBTOR = "AccountDebtor";
-    public static final String ACCOUNT_CREDITOR = "AccountCreditor";
 
     public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, FiniteConfiguration finiteConfiguration, String zoneId) {
         var exchangeTransaction = new ExchangeTransaction();
@@ -85,10 +82,8 @@ public class PaymentOrdersMapper {
 
     public static PaymentOrderStatus createPaymentsOrderStatusFromRequest(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String zoneId) {
         //Return processed if requested date is the same as today and payment type is single as core is handling this immediately
-        if (paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
-            // Ensure both dates are compared in UTC
-            if (paymentOrdersPostRequestBody.getRequestedExecutionDate()
-                    .isEqual(LocalDate.now(ZoneId.of("UTC")))) {
+        if(paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
+            if(paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))) {
                 log.debug("Execution Date is immediate, saving payment order as PROCESSED");
                 return PaymentOrderStatus.PROCESSED;
             }
@@ -129,26 +124,36 @@ public class PaymentOrdersMapper {
         exchangeTransaction.setAmount(new BigDecimal(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount()));
         exchangeTransaction.setExecutionDate(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().toString()));
 
+        // set description for transaction
+        /*
+        if(paymentOrdersPostRequestBody.getTransferTransactionInformation() != null &&
+                paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation() != null &&
+                !StringUtils.isEmpty(paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation().getContent())) {
+            exchangeTransaction.setDescription(paymentOrdersPostRequestBody.getTransferTransactionInformation().getRemittanceInformation().getContent());
+        }
+     */
+
         //In Finite the debitor is the From
         var accountDebtor = new AccountDebtor();
-        accountDebtor.setDebtorType(ACCOUNT_DEBTOR);
+        accountDebtor.setDebtorType("AccountDebtor");
         accountDebtor.setId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
-
 
         //In Finite the creditor is the To
         var accountCreditor = new AccountCreditor();
-        accountCreditor.setCreditorType(ACCOUNT_CREDITOR);
+        accountCreditor.setCreditorType("AccountCreditor");
 
-        // extracting external arrangementId from originator account
-        String externalArrangementIdForNewAccount = AccountUtils.generateArrangementNewAccount(account, paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
+        //TODO get this for account create response
 
-        accountCreditor.setId(externalArrangementIdForNewAccount);
+        String  accountCode = account.getId();
+        String  newAccountId = account.getProduct().getId();
+        String arrangementNewAccount = accountCode+ "-" + "S" + "-" + newAccountId;
+        accountCreditor.setId(arrangementNewAccount);
         exchangeTransaction.setDebtor(accountDebtor);
         exchangeTransaction.setCreditor(accountCreditor);
 
-        log.warn("Payment mode {} and requested execution date {} ",paymentOrdersPostRequestBody.getPaymentMode(),paymentOrdersPostRequestBody.getRequestedExecutionDate());
+        //Set Recurring Schedule
 
-        if(!paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
+        if (!paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
             var schedule = new Schedule();
             exchangeTransaction.setIsRecurring(Boolean.TRUE);
             schedule.setRepeatCount(paymentOrdersPostRequestBody.getSchedule().getRepeat());
@@ -160,15 +165,12 @@ public class PaymentOrdersMapper {
             schedule.setStartDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getStartDate().toString()));
 
             //The end date calculation takes place in Finite, as it will be specific per core/customer
-            if(paymentOrdersPostRequestBody.getSchedule().getEndDate()!=null){
+            if (paymentOrdersPostRequestBody.getSchedule().getEndDate() != null) {
                 schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getSchedule().getEndDate().toString()));
             }
+
             exchangeTransaction.setRecurringSchedule(schedule);
-        }
-        else if(!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))){
-
-            log.warn("Initiating payment on {} ",LocalDate.now(ZoneId.of(zoneId)));
-
+        } else if (!paymentOrdersPostRequestBody.getRequestedExecutionDate().isEqual(LocalDate.now(ZoneId.of(zoneId)))) {
             var schedule = new Schedule();
             schedule.setStrategy(Schedule.StrategyEnum.NONE);
             schedule.setFrequency("ONCE");
@@ -177,9 +179,6 @@ public class PaymentOrdersMapper {
             schedule.setEndDateTime(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().plusWeeks(1).toString()));
             exchangeTransaction.setRecurringSchedule(schedule);
         }
-
-        log.warn("exchange transaction payload {}", exchangeTransaction);
-
         return exchangeTransaction;
     }
 }
