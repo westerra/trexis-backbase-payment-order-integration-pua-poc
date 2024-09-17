@@ -229,8 +229,6 @@ jobs:
       - kubernetes/install-kubectl:
           kubectl-version: v1.22.0
       - aws-cli/install
-      - setup_remote_docker:
-          version: default      
       - run:
           command: |
             wget https://get.helm.sh/helm-v3.8.1-linux-amd64.tar.gz
