@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +58,7 @@ public class PaymentOrdersService {
     public static final String SUCCESS = "SUCCESS";
     public static final String NEW_ACCOUNT_CREATION_FAILER_MSG = "New Account creation failed";
     public static final String ACCOUNT_CREATION_IS_CURRENTLY_DISABLED = "Account creation is currently disabled.";
+    public static final String PAYMENT_FAILED_ERROR_MSG ="Something went wrong, please contact us at 303-321-4209 to speak with a representative.";
     private final ExchangeApi exchangeApi;
     private final IngestionApi ingestionApi;
     private final FiniteConfiguration finiteConfiguration;
@@ -368,7 +370,7 @@ public class PaymentOrdersService {
 
     private PaymentOrdersPostResponseBody handleTransactionError(PaymentOrdersPostResponseBody responseBody, RuntimeException ex) {
         responseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-        responseBody.setErrorDescription(getBBCompatibleErrorDescription(ex.getMessage()));
+        responseBody.setErrorDescription(PAYMENT_FAILED_ERROR_MSG);
         responseBody.setReasonText(getBBCompatibleReason(ex.getMessage()));
         return responseBody;
     }
