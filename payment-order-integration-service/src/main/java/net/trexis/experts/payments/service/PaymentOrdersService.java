@@ -50,8 +50,6 @@ public class PaymentOrdersService {
     public static final String INTRABANK_TRANSFER = "INTRABANK_TRANSFER";
     public static final String ARRANGEMENT_ID_FORMATTER = "%010d";
     public static final String PRODUCT_ID = "-S-0";
-    public static final String ACCOUNT_STATUS = "accountStatus";
-    public static final String SUCCESS = "SUCCESS";
     public static final String NEW_ACCOUNT_CREATION_FAILER_MSG = "Account creation failed, please contact us at 303-321-4209 to speak with a representative";
     public static final String ACCOUNT_CREATION_IS_CURRENTLY_DISABLED = "Account creation is currently disabled.";
     public static final String PAYMENT_FAILED_ERROR_MSG ="Something went wrong, please contact us at 303-321-4209 to speak with a representative.";
@@ -297,7 +295,7 @@ public class PaymentOrdersService {
                 : input;
     }
 
-    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody,String primaryAccountCode) {
         log.debug("Request received for new account creation -> {}", paymentOrdersPostRequestBody);
 
         var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
@@ -309,7 +307,7 @@ public class PaymentOrdersService {
             }
 
             // Map request to account object
-            Account account = mapToAccount(paymentOrdersPostRequestBody);
+            Account account = mapToAccount(paymentOrdersPostRequestBody,primaryAccountCode);
 
             // Call connector to create account
             Account accountResponse = createNewAccount(account);
@@ -425,7 +423,7 @@ public class PaymentOrdersService {
         return accountsApi.postAccount(account,"trace_account_create",null,null,true);
     }
 
-    private Account mapToAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
+    private Account mapToAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String primaryAccountCode) {
         Account account = new Account();
         Product product = new Product();
         String productCode = getProductCode(paymentOrdersPostRequestBody);
@@ -434,6 +432,8 @@ public class PaymentOrdersService {
         String entityId = AccountUtils.extractMemberId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
         account.setId(entityId);
         account.setProduct(product);
+        // setting primary account code to check the warning code
+        account.setParentId(primaryAccountCode);
         return account;
     }
 

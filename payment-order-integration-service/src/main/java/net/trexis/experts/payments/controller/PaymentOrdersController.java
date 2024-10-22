@@ -40,14 +40,23 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
         }
 
         // Extract account creation request data name and split to get account code and creation flag
-        String checkIfNewAccountCreateRequest = Optional.ofNullable(paymentOrdersPostRequestBody.getTransferTransactionInformation())
+        String newAccountRequestData = Optional.ofNullable(paymentOrdersPostRequestBody.getTransferTransactionInformation())
                 .map(TransferTransactionInformation::getPurposeOfPayment)
                 .map(PurposeOfPayment::getFreeText)
                 .orElse(null);
 
+        String[] arrPrimaryAccountCode = Optional.ofNullable(newAccountRequestData)
+                .filter(text -> text.contains("-"))
+                .map(text -> text.split("-"))
+                .filter(split -> split.length == 2)
+                .orElse(new String[]{null, null});
+
+        String createNewAccountFlag = arrPrimaryAccountCode[0];
+        String primaryAccountCode = arrPrimaryAccountCode[1];
+
         // Decision-making based on the createNewAccountFlag
-        if (NEW_ACCOUNT_REQUEST.equalsIgnoreCase(checkIfNewAccountCreateRequest)) {
-            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody));
+        if (NEW_ACCOUNT_REQUEST.equalsIgnoreCase(createNewAccountFlag)) {
+            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody,primaryAccountCode));
         } else {
             return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
         }
