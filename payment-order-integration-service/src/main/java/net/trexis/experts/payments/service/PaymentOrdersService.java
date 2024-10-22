@@ -295,7 +295,7 @@ public class PaymentOrdersService {
                 : input;
     }
 
-    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody,String primaryAccountCode) {
+    public PaymentOrdersPostResponseBody createAccountAndPostPaymentOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         log.debug("Request received for new account creation -> {}", paymentOrdersPostRequestBody);
 
         var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
@@ -307,7 +307,7 @@ public class PaymentOrdersService {
             }
 
             // Map request to account object
-            Account account = mapToAccount(paymentOrdersPostRequestBody,primaryAccountCode);
+            Account account = mapToAccount(paymentOrdersPostRequestBody);
 
             // Call connector to create account
             Account accountResponse = createNewAccount(account);
@@ -423,7 +423,7 @@ public class PaymentOrdersService {
         return accountsApi.postAccount(account,"trace_account_create",null,null,true);
     }
 
-    private Account mapToAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, String primaryAccountCode) {
+    private Account mapToAccount(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody) {
         Account account = new Account();
         Product product = new Product();
         String productCode = getProductCode(paymentOrdersPostRequestBody);
@@ -432,8 +432,6 @@ public class PaymentOrdersService {
         String entityId = AccountUtils.extractMemberId(paymentOrdersPostRequestBody.getOriginatorAccount().getExternalArrangementId());
         account.setId(entityId);
         account.setProduct(product);
-        // setting primary account code to check the warning code
-        account.setParentId(primaryAccountCode);
         return account;
     }
 

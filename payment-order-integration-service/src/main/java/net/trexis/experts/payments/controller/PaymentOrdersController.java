@@ -45,18 +45,9 @@ public class PaymentOrdersController implements PaymentOrderIntegrationOutboundA
                 .map(PurposeOfPayment::getFreeText)
                 .orElse(null);
 
-        String[] arrPrimaryAccountCode = Optional.ofNullable(newAccountRequestData)
-                .filter(text -> text.contains("-"))
-                .map(text -> text.split("-"))
-                .filter(split -> split.length == 2)
-                .orElse(new String[]{null, null});
-
-        String createNewAccountFlag = arrPrimaryAccountCode[0];
-        String primaryAccountCode = arrPrimaryAccountCode[1];
-
         // Decision-making based on the createNewAccountFlag
-        if (NEW_ACCOUNT_REQUEST.equalsIgnoreCase(createNewAccountFlag)) {
-            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody,primaryAccountCode));
+        if (NEW_ACCOUNT_REQUEST.equalsIgnoreCase(newAccountRequestData)) {
+            return ResponseEntity.ok(paymentOrdersService.createAccountAndPostPaymentOrders(paymentOrdersPostRequestBody));
         } else {
             return ResponseEntity.ok(paymentOrdersService.postPaymentOrders(paymentOrdersPostRequestBody, externalUserId));
         }
