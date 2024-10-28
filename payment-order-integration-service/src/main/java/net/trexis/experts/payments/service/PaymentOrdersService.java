@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.finite.FiniteConfiguration;
 import net.trexis.experts.ingestion_service.api.IngestionApi;
+import net.trexis.experts.payments.exception.BadRequestPaymentException;
 import net.trexis.experts.payments.models.PaymentOrderStatus;
 import net.trexis.experts.ingestion_service.model.StartIngestionPostRequest;
 import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
@@ -394,12 +395,12 @@ public class PaymentOrdersService {
             return paymentOrdersPostResponseBody;
 
         }
-        catch (PaymentOrdersServiceException ex) {
-            // Set specific failure reason captured in the custom exception
+        catch (BadRequestPaymentException ex) {
+            // Set response for specific Bad Request failures
             log.error("Transaction failed with specific reason: {}", ex.getMessage());
             paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
-            paymentOrdersPostResponseBody.setErrorDescription(ex.getMessage());
-            paymentOrdersPostResponseBody.setReasonText(PAYMENT_FAILED_ERROR_MSG);  // Set the detailed reason text from the exception
+            paymentOrdersPostResponseBody.setReasonText(ex.getMessage());
+            paymentOrdersPostResponseBody.setErrorDescription(PAYMENT_FAILED_ERROR_MSG);  // General failure message
             return paymentOrdersPostResponseBody;
         }
         catch (RuntimeException ex) {
@@ -408,12 +409,13 @@ public class PaymentOrdersService {
         }
     }
 
-    private void handleTransactionFailure(ExchangeTransactionResult transactionResult) throws PaymentOrdersServiceException {
+    private void handleTransactionFailure(ExchangeTransactionResult transactionResult) throws BadRequestPaymentException {
         String reason = Optional.ofNullable(transactionResult)
                 .map(ExchangeTransactionResult::getReason)
-                .orElse("Unknown reason");
-        throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(reason));
+                .orElse("Bad Request: Transaction failed due to an unknown reason.");
+        throw new BadRequestPaymentException(reason);
     }
+
 
     private void populateResponseBody(PaymentOrdersPostResponseBody responseBody, PaymentOrdersPostRequestBody requestBody, ExchangeTransactionResult transactionResult) {
         PaymentOrderStatus paymentOrderStatus = PaymentOrdersMapper.createPaymentsOrderStatusFromRequest(requestBody, zoneId);
