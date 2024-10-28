@@ -120,6 +120,7 @@ public class PaymentOrdersService {
 
             var exchangeTransactionResult =
                     exchangeApi.performExchangeTransaction(exchangeTransaction, null, null);
+
             log.debug("Payment with result {}", exchangeTransactionResult);
             if (exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
                 throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
@@ -392,7 +393,16 @@ public class PaymentOrdersService {
 
             return paymentOrdersPostResponseBody;
 
-        } catch (RuntimeException ex) {
+        }
+        catch (PaymentOrdersServiceException ex) {
+            // Set specific failure reason captured in the custom exception
+            log.error("Transaction failed with specific reason: {}", ex.getMessage());
+            paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+            paymentOrdersPostResponseBody.setErrorDescription(ex.getMessage());
+            paymentOrdersPostResponseBody.setReasonText(PAYMENT_FAILED_ERROR_MSG);  // Set the detailed reason text from the exception
+            return paymentOrdersPostResponseBody;
+        }
+        catch (RuntimeException ex) {
             log.error("Error while exchanging transaction: {}", ex.getMessage());
             return handleTransactionError(paymentOrdersPostResponseBody, ex);
         }
