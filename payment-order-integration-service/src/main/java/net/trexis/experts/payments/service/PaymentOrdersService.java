@@ -124,7 +124,7 @@ public class PaymentOrdersService {
 
             log.debug("Payment with result {}", exchangeTransactionResult);
             if (exchangeTransactionResult == null || StringUtils.isEmpty(exchangeTransactionResult.getExchangeTransactionId())) {
-                throw new PaymentOrdersServiceException().withMessage(getBBCompatibleReason(exchangeTransactionResult.getReason()));
+                handleTransactionFailure(exchangeTransactionResult);
             }
 
             var paymentOrderStatus =
@@ -155,7 +155,17 @@ public class PaymentOrdersService {
 
             return paymentOrdersPostResponseBody;
 
-        } catch (RuntimeException ex) {
+        }
+        catch (BadRequestPaymentException ex) {
+            // Set response for specific Bad Request failures
+            log.error("Transaction failed with specific reason: {}", ex.getMessage());
+            var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
+            paymentOrdersPostResponseBody.setBankStatus(PaymentOrderStatus.REJECTED.getValue());
+            paymentOrdersPostResponseBody.setReasonText(ex.getMessage());
+            paymentOrdersPostResponseBody.setErrorDescription(PAYMENT_FAILED_ERROR_MSG);  // General failure message
+            return paymentOrdersPostResponseBody;
+        }
+        catch (RuntimeException ex) {
             //Mark the payment order as rejected due to unknown submission error to core
             log.error("Error while exchanging transaction: {}", ex);
             var paymentOrdersPostResponseBody = new PaymentOrdersPostResponseBody();
@@ -412,7 +422,7 @@ public class PaymentOrdersService {
     private void handleTransactionFailure(ExchangeTransactionResult transactionResult) throws BadRequestPaymentException {
         String reason = Optional.ofNullable(transactionResult)
                 .map(ExchangeTransactionResult::getReason)
-                .orElse("Bad Request: Transaction failed due to an unknown reason.");
+                .orElse(PAYMENT_FAILED_ERROR_MSG);
         throw new BadRequestPaymentException(reason);
     }
 
