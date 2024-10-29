@@ -12,7 +12,7 @@ import java.time.ZoneId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PaymentOrdersMapperTest {
-    private final String zoneId = "America/Denver";
+    private final String zoneId = "UTC";
 
     @Test
     public void calculateEndDateTimeFromRepeat_Success() {
