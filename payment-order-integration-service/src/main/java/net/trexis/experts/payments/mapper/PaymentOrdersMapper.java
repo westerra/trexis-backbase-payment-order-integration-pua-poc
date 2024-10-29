@@ -25,6 +25,8 @@ public class PaymentOrdersMapper {
     public static final String CACHE_EXTERNAL_ID = "id";
     public static final String ACCOUNT_DEBTOR = "AccountDebtor";
     public static final String ACCOUNT_CREDITOR = "AccountCreditor";
+    public static final String ZONE_ID_UTC = "UTC";
+
 
     public static ExchangeTransaction createPaymentsOrders(PaymentOrdersPostRequestBody paymentOrdersPostRequestBody, FiniteConfiguration finiteConfiguration, String zoneId) {
         var exchangeTransaction = new ExchangeTransaction();
@@ -88,7 +90,7 @@ public class PaymentOrdersMapper {
         if (paymentOrdersPostRequestBody.getPaymentMode().equals(PaymentOrdersPostRequestBody.PaymentModeEnum.SINGLE)) {
             // Ensure both dates are compared in UTC
             if (paymentOrdersPostRequestBody.getRequestedExecutionDate()
-                    .isEqual(LocalDate.now(ZoneId.of("UTC")))) {
+                    .isEqual(LocalDate.now(ZoneId.of(ZONE_ID_UTC)))) {
                 log.debug("Execution Date is immediate, saving payment order as PROCESSED");
                 return PaymentOrderStatus.PROCESSED;
             }
