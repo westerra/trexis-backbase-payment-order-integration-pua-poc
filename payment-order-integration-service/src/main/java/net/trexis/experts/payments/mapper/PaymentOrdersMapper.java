@@ -32,7 +32,7 @@ public class PaymentOrdersMapper {
         var exchangeTransaction = new ExchangeTransaction();
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
-        exchangeTransaction.setAmount(new BigDecimal(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount()));
+        exchangeTransaction.setAmount(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount());
 
         exchangeTransaction.setExecutionDate(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().toString()));
         if(paymentOrdersPostRequestBody.getTransferTransactionInformation() != null &&
@@ -128,7 +128,7 @@ public class PaymentOrdersMapper {
         var exchangeTransaction = new ExchangeTransaction();
         exchangeTransaction.setIsRecurring(Boolean.FALSE);
         exchangeTransaction.setId(paymentOrdersPostRequestBody.getId());
-        exchangeTransaction.setAmount(new BigDecimal(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount()));
+        exchangeTransaction.setAmount(paymentOrdersPostRequestBody.getTransferTransactionInformation().getInstructedAmount().getAmount());
         exchangeTransaction.setExecutionDate(makeValidISODateTime(paymentOrdersPostRequestBody.getRequestedExecutionDate().toString()));
 
         //In Finite the debitor is the From

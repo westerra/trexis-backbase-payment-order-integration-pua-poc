@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.ZoneId;
 
 import com.finite.api.model.Product;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.trexis.experts.finite.FiniteConfiguration;
@@ -32,7 +33,6 @@ import net.trexis.experts.payments.exception.PaymentOrdersServiceException;
 import net.trexis.experts.payments.mapper.PaymentOrdersMapper;
 import net.trexis.experts.payments.utilities.AccountUtils;
 import org.apache.commons.lang.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -342,10 +342,10 @@ public class PaymentOrdersService {
                 return paymentOrdersPostResponseBody;
             }
 
-            BigDecimal amount = new BigDecimal(paymentOrdersPostRequestBody
+            BigDecimal amount = paymentOrdersPostRequestBody
                     .getTransferTransactionInformation()
                     .getInstructedAmount()
-                    .getAmount());
+                    .getAmount();
 
             // Check if the amount is greater than 0
             if (amount.compareTo(BigDecimal.ZERO) > 0) {
